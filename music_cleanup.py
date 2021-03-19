@@ -16,15 +16,14 @@ def find_columns(line):
   Input must be the line in the document that sepcifies **kern
   vs **dynam columns."""
   column_headers = line.split("\t")
-  # print(" | ".join(column_headers))
   dynam_columns = []
   hand_columns = []
   for i in range(len(column_headers)):
-    if column_headers[i] != "**kern":
+    if column_headers[i].strip() != "**kern":
       dynam_columns.append(i)
     else:
       hand_columns.append([i])
-  assert len(hand_columns) == 2, "more than two **kern columns"
+  assert len(hand_columns) == 2, "more than two **kern columns: " + " | ".join(column_headers)
   return dynam_columns, hand_columns
 
 def insert_col(cols_list, i):
@@ -117,24 +116,20 @@ def combine_notes(notes):
     return ["."]
   return list(filter(lambda x: 'r' not in x and x != ".", notes))
 
-def clean_line(line, dynam_columns, hand_columns):
+def clean_line(line, hand_columns):
   """Outputs `line` with extraneous characters and columns removed.
   'extraneous columns' are columns in `dynam_columns`. Condenses 
   all left hand columns and right hand columns into a single column
   each. """
-  line_string = ""
   left_notes = []
   right_notes = []
   columns = line.split("\t")
   for i in range(len(columns)):
-    # if i not in dynam_columns:
-      # if columns[i] not in {'*', '*^', '*v'}:
     columns[i] = re.sub("[^A-Ga-g0-9\ \[\]r#\-\.]", "", columns[i])
     if i in hand_columns[0]:
       left_notes.extend(columns[i].split(" "))
     if i in hand_columns[1]:
       right_notes.extend(columns[i].split(" "))
-      # line_string += columns[i] + "\t"
   left_notes = combine_notes(left_notes)
   right_notes = combine_notes(right_notes)
   return " ".join(left_notes) + "\t" + " ".join(right_notes)
@@ -147,27 +142,34 @@ def clean_file(f):
   dynam_columns = []
   hand_columns = []
   for line in f:
+    if len(line.strip()) == 0:
+      continue
     if "**kern" in line and line[0] == "*":
       dynam_columns, hand_columns = find_columns(line)
     if should_remove_line(line):
       continue
-    cleaned_line = clean_line(line, dynam_columns, hand_columns) 
+    cleaned_line = clean_line(line, hand_columns) 
     if '*^' in line or '*v' in line:
       dynam_columns = update_dynam_col(line, dynam_columns)
       hand_columns = update_hand_columns(line, hand_columns)
     else:
       out_string += cleaned_line + "\n"
-  # print(out_string, end="")
+      # print(out_string, end="")
   return out_string
 
 ## loop thorugh the files in raw1/, and create new, processed files in 
 ## processed_music/ with the same filename 
 if __name__ == "__main__":
   for filename in os.listdir("./raw1/"):
-    file_string = ""
-    with open(f"./raw1/{filename}", "r") as f:
-    # with open("./test_music_file") as f:
-      file_string = clean_file(f)
-    with open(f"./processed_music/{filename}", "w") as f:
-      f.write(file_string)
+    try:
+      file_string = ""
+      # with open("./raw1/Beethoven, Ludwig van___Piano Sonata no. 24 in F-sharp major", "r") as f:
+      with open(f"./raw1/{filename}", "r") as f:
+        file_string = clean_file(f)
+      with open(f"./processed_music/{filename}", "w") as f:
+        f.write(file_string)
+    except AssertionError as err:
+      print(f"Assertion error in reading {filename}: {err}")
+    except:
+      print(f"Unexpected error in reading {filename}")
     # break
