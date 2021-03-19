@@ -2,7 +2,7 @@ import os
 import re
 
 def should_remove_line(line):
-  """Returns true if this is a line of **kern that should not 
+  """Returns true if this is a line that should not 
   appear at all in the cleaned up data."""
   if line[0] in {'!', '=', '*'} and '*^' not in line and '*v' not in line:
     return True
@@ -10,71 +10,140 @@ def should_remove_line(line):
     return True
   return False 
 
-def find_dynamics_columns(line):
+def find_columns(line):
   """Returns a list of column indices in the **kern code that correspond
   to columns we don't care about.
-  
-  These columns may move around depending on the presence of *^
-  and *v lines."""
+  Input must be the line in the document that sepcifies **kern
+  vs **dynam columns."""
   column_headers = line.split("\t")
   dynam_columns = []
+  hand_columns = []
   for i in range(len(column_headers)):
     if column_headers[i] != "**kern":
       dynam_columns.append(i)
-  return dynam_columns
+    else:
+      hand_columns.append([i])
+  assert len(hand_columns) == 2, "more than two **kern columns"
+  return dynam_columns, hand_columns
+
+def insert_col(cols_list, i):
+  """Return updated cols_list, reflecting a column has been
+  inserted at position i. If i occurs within cols_list,
+  update reflects that this new column is in cols_list."""
+  for j in range(len(cols_list)):
+    if cols_list[j] > i:
+      cols_list[j] += 1
+  if i in cols_list:
+    cols_list.append(i+1)
+    cols_list.sort()
+  return cols_list
+
+def merge_cols(cols_list, columns, i):
+  """Returns updated cols_list where the merge group ending at 
+  i has been merged, if that merge group was within cols_list
+  to begin with. Also returns the position of the left-most 
+  column in the merge group.
+  Throws an error if the merge group was only partially in this column
+  list."""
+  print("merge ends in col " + str(i))
+  k = i - 1
+  while columns[k] == "*v":
+    if i in cols_list:
+      assert k in cols_list, "merge group not contained in one column list"
+    k -= 1
+  print("merge begins after col " + str(k))
+  num_cols_merged = i-k 
+  print("merging " + str(num_cols_merged) + " cols")
+  for j in range(len(cols_list)):
+    if cols_list[j] > i:
+      print(f"{cols_list[j]} > {i}, decrementing")
+      cols_list[j] -= num_cols_merged - 1
+      print(f"new value: {cols_list[j]}")
+    else:
+      print(f"{cols_list[j]} is unaffected")
+  for col in cols_list:
+    if col > k and col <= i:
+      print(f"deleting column {col}")
+      cols_list.remove(col)
+  i = k + 1
+  return cols_list, i
 
 def update_dynam_col(line, dynam_columns):
   """Outputs the new indices of the dynamics columns,
   after any number of columns have been split or merged
-  with the *^ or *v syntax."""
+  with the *^ or *v syntax.
+  Input must be a line containing only tab-separated *, *^, and *v"""
   columns = line.split("\t")
   i = len(columns) - 1
   while i >= 0:
     if columns[i] == "*^":
-      for j in range(len(dynam_columns)):
-        if dynam_columns[j] > i:
-          dynam_columns[j] += 1
-      if i in dynam_columns:
-        dynam_columns.append(i+1)
-        dynam_columns.sort()
+      dynam_columns = insert_col(dynam_columns, i)
     elif columns[i] == "*v":
-      k = i - 1
-      while columns[k] == "*v":
-        k -= 1
-      num_cols_merged = i-k 
-      for j in range(len(dynam_columns)):
-        if dynam_columns[j] > i:
-          dynam_columns[j] -= num_cols_merged - 1
-      i = k + 1
+      dynam_columns, i = merge_cols(dynam_columns, columns, i)
     i -= 1
   return dynam_columns
 
-def remove_extraneous_information(f):
+def remove_extraneous_information(line, dynam_columns):
+  """Outputs `line` with extraneous characters and columns removed.
+  'extraneous columns' are columns in `dynam_columns`. """
+  line_string = ""
+  columns = line.split("\t")
+  for i in range(len(columns)):
+    if i not in dynam_columns:
+      if columns[i] not in {'*', '*^', '*v'}:
+        columns[i] = re.sub("[^A-Ga-g0-9\ \[\]r#\-\.]", "", columns[i])
+      line_string += columns[i] + "\t"
+  return line_string[:-1]
+
+def update_hand_columns(line, hand_columns):
+  """Outputs a list of two lists, where the list at position 0
+  corresponds to the columns that are assigned to the left hand, 
+  and the list at position 1 corresponds to the columns that 
+  are assigned to the right hand, given the merges and splits
+  indicated in `line`. 
+  Input must be a line containing only tab-separated *, *^, and *v"""
+  columns = line.split("\t")
+  i = len(columns) - 1
+  while i >= 0:
+    left_cols = hand_columns[0]
+    right_cols = hand_columns[1]
+    if columns[i] == "*^":
+      left_cols = insert_col(left_cols, i)
+      right_cols = insert_col(right_cols, i)
+    elif columns[i] == "*v":
+      left_cols, _ = merge_cols(left_cols, columns, i)
+      right_cols, i = merge_cols(right_cols, columns, i)
+    i -= 1
+  return [left_cols, right_cols]
+
+def clean_file(f):
   """Outputs a string that is equivalent to the data found in f, 
-  but with all extraneous data removes (bar lines, kern column
-  markers, grace notes, comments, formatting and dynamics, ...). Lines
-  denoting column merges or splits are left in, for checks done later. """
+  but with all extraneous data removed, and all staffs consolidated
+  to one column when split."""
   out_string = ""
   dynam_columns = []
+  hand_columns = []
   for line in f:
     if "**kern" in line:
-      dynam_columns = find_dynamics_columns(line)
-    if '*^' in line or '*v' in line:
-      dynam_columns = update_dynam_col(line, dynam_columns)
-      continue
+      dynam_columns, hand_columns = find_columns(line)
     if should_remove_line(line):
       continue
-    columns = line.split("\t")
-    for i in range(len(columns)):
-      if i not in dynam_columns:
-        cleaned_note = re.sub("[^A-Ga-g0-9\[\]r#\-\.]", "", columns[i])
-        out_string += cleaned_note + "\t"
-    out_string += "\n"
-
-
+    clean_line = remove_extraneous_information(line, dynam_columns) 
+    print(clean_line)
+    if '*^' in line or '*v' in line:
+      dynam_columns = update_dynam_col(line, dynam_columns)
+    else:
+      out_string += clean_line + "\n"
+  return out_string
 
 ## loop thorugh the files in raw1/, and create new, processed files in 
 ## processed_music/ with the same filename 
-for filename in os.listdir("./raw1/"):
-  with open(f"./raw1/{filename}") as f:
-    file_string = remove_extraneous_information(f)
+if __name__ == "__main__":
+  for filename in os.listdir("./raw1/"):
+    file_string = ""
+    # with open(f"./raw1/{filename}", "r") as f:
+    with open("./test_music_file") as f:
+      file_string = clean_file(f)
+    with open(f"./processed_music/{filename}", "w") as f:
+      f.write(file_string)
+    break
