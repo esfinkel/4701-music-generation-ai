@@ -3,7 +3,10 @@ import re
 
 def should_remove_line(line):
   """Returns true if this is a line that should not 
-  appear at all in the cleaned up data."""
+  appear at all in the cleaned up data. Lines with *^ and 
+  *v won't appear in the outputted cleaned file, 
+  but we need them for intermediate steps and thus won't
+  immediately remove them."""
   if line[0] in {'!', '=', '*'} and '*^' not in line and '*v' not in line:
     return True
   if 'q' in line:
@@ -12,22 +15,20 @@ def should_remove_line(line):
 
 def find_columns(line):
   """Returns a list of column indices in the **kern code that correspond
-  to columns we don't care about.
-  Input must be the line in the document that sepcifies **kern
-  vs **dynam columns."""
+  to columns representing the left hand notes and the right hand notes.
+  Input must be the line in the document that specifies **kern
+  vs non-**kern columns."""
   column_headers = line.split("\t")
-  dynam_columns = []
   hand_columns = []
   for i in range(len(column_headers)):
-    if column_headers[i].strip() != "**kern":
-      dynam_columns.append(i)
-    else:
+    if column_headers[i].strip() == "**kern":
       hand_columns.append([i])
-  assert len(hand_columns) == 2, "more than two **kern columns: " + " | ".join(column_headers)
-  return dynam_columns, hand_columns
+  assert len(hand_columns) == 2, \
+    "# **kern columns != 2: " + " | ".join(column_headers)
+  return hand_columns
 
 def insert_col(cols_list, i):
-  """Return updated cols_list, reflecting a column has been
+  """Return updated cols_list, reflecting that a column has been
   inserted at position i. If i occurs within cols_list,
   update reflects that this new column is in cols_list."""
   for j in range(len(cols_list)):
@@ -40,11 +41,11 @@ def insert_col(cols_list, i):
 
 def merge_cols(cols_list, columns, i):
   """Returns updated cols_list where the merge group ending at 
-  i has been merged, if that merge group was within cols_list
-  to begin with. Also returns the position of the left-most 
+  i has been merged. Also returns the position of the left-most 
   column in the merge group.
   Throws an error if the merge group was only partially in this column
-  list."""
+  list (a merge group should be either not at all overlapping with
+  this column list, or compeltely overlapping)."""
   k = i - 1
   while columns[k] == "*v":
     if i in cols_list:
@@ -61,21 +62,6 @@ def merge_cols(cols_list, columns, i):
   i = k + 1
   return cols_list, i
 
-def update_dynam_col(line, dynam_columns):
-  """Outputs the new indices of the dynamics columns,
-  after any number of columns have been split or merged
-  with the *^ or *v syntax.
-  Input must be a line containing only tab-separated *, *^, and *v"""
-  columns = line.split("\t")
-  i = len(columns) - 1
-  while i >= 0:
-    if columns[i] == "*^":
-      dynam_columns = insert_col(dynam_columns, i)
-    elif columns[i] == "*v":
-      dynam_columns, i = merge_cols(dynam_columns, columns, i)
-    i -= 1
-  return dynam_columns
-
 def update_hand_columns(line, hand_columns):
   """Outputs a list of two lists, where the list at position 0
   corresponds to the columns that are assigned to the left hand, 
@@ -84,10 +70,10 @@ def update_hand_columns(line, hand_columns):
   indicated in `line`. 
   Input must be a line containing only tab-separated *, *^, and *v"""
   columns = line.split("\t")
+  left_cols = hand_columns[0]
+  right_cols = hand_columns[1]
   i = len(columns) - 1
   while i >= 0:
-    left_cols = hand_columns[0]
-    right_cols = hand_columns[1]
     if columns[i] == "*^":
       left_cols = insert_col(left_cols, i)
       right_cols = insert_col(right_cols, i)
@@ -97,12 +83,39 @@ def update_hand_columns(line, hand_columns):
     i -= 1
   return [left_cols, right_cols]
 
+def convert_to_duration(note):
+  """Given a **kern note, returns the duration of this note. 
+  Example: 4r -> 1/4
+  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 0.875
+  `.` has duration 0."""
+  number=""
+  dots = 0
+  for c in note:
+    if c.isdigit():
+      number += c
+    if c == ".":
+      dots += 1
+  if number == "":
+    return 0
+  number = int(number)
+  duration = 1 / float(number)
+  added_duration = float(duration)
+  for i in range(dots):
+    added_duration /= 2
+    duration += added_duration
+  return duration
+
+
 def combine_notes(notes):
   """return a list of notes such that the list is either: a single
-  rest of the shortest duration in the list, a single `.`, or
+  rest of the shortest duration in the list (if the list was made up 
+  entirely of rests), a single `.` (if the list was entirely `.`s), or
   the list with all rests and standalone `.`s removed, with no
-  duplicate notes. """
-  notes = sorted(list(set(notes)), reverse=True)
+  duplicate notes, ordered such that the note with the shortest 
+  duration comes first. 
+  Notes with the same pitch but different durations are not 
+  considered to be duplicates."""
+  notes = sorted(list(set(notes)), key=lambda x: convert_to_duration(x))
   all_dots = True
   all_rests = True 
   for note in notes:
@@ -117,9 +130,8 @@ def combine_notes(notes):
   return list(filter(lambda x: 'r' not in x and x != ".", notes))
 
 def clean_line(line, hand_columns):
-  """Outputs `line` with extraneous characters and columns removed.
-  'extraneous columns' are columns in `dynam_columns`. Condenses 
-  all left hand columns and right hand columns into a single column
+  """Outputs `line` with extraneous characters and columns removed. 
+  Condenses all left hand columns and right hand columns into a single column
   each. """
   left_notes = []
   right_notes = []
@@ -139,22 +151,19 @@ def clean_file(f):
   but with all extraneous data removed, and all staffs consolidated
   to one column when split."""
   out_string = ""
-  dynam_columns = []
   hand_columns = []
   for line in f:
     if len(line.strip()) == 0:
       continue
     if "**kern" in line and line[0] == "*":
-      dynam_columns, hand_columns = find_columns(line)
+      hand_columns = find_columns(line)
     if should_remove_line(line):
       continue
     cleaned_line = clean_line(line, hand_columns) 
     if '*^' in line or '*v' in line:
-      dynam_columns = update_dynam_col(line, dynam_columns)
       hand_columns = update_hand_columns(line, hand_columns)
     else:
       out_string += cleaned_line + "\n"
-      # print(out_string, end="")
   return out_string
 
 ## loop thorugh the files in raw1/, and create new, processed files in 
@@ -163,7 +172,6 @@ if __name__ == "__main__":
   for filename in os.listdir("./raw1/"):
     try:
       file_string = ""
-      # with open("./raw1/Beethoven, Ludwig van___Piano Sonata no. 24 in F-sharp major", "r") as f:
       with open(f"./raw1/{filename}", "r") as f:
         file_string = clean_file(f)
       with open(f"./processed_music/{filename}", "w") as f:
@@ -172,4 +180,3 @@ if __name__ == "__main__":
       print(f"Assertion error in reading {filename}: {err}")
     except:
       print(f"Unexpected error in reading {filename}")
-    # break
