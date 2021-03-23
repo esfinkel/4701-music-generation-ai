@@ -14,6 +14,13 @@ flat_order = ["b-", "e-", "a-", "d-", "g-", "c-", "f-"]
 flat_keys = ["c", "f", "a#", "d#", "g#", "c#", "f#", "b"]
 
 def get_key(f):
+  """Given an unprocessed **kern file, returns the key of the piece, 
+  according to the *k[...] line. If no such line exists, throws 
+  ValueError. If the key is empty and the piece is not explicitly
+  listed as being in C major or A minor, throws AssertionError. If
+  the listed key does not follow standard key conventions (e.g.
+  bad combination of sharps, wrong ordering of sharps, etc.) throws
+  AssertionError. """
   for line in f:
     if line[:3] == "*k[":
       key = line.strip().split("\t")[0][3:-1]
@@ -31,6 +38,7 @@ def get_key(f):
         assert key == "".join(flat_order[:len(key.split("-")) - 1]), \
               f"key doesn't match standard flat odering: {key}"
         return flat_keys[len(key.split("-"))]
+  raise ValueError("No **kern line specifying key.")
         
 ## loop thorugh the files in raw1/ and find the key each pieces is in. 
 ## then load the cleaned up version of that file from processed_music/
@@ -45,6 +53,8 @@ if __name__ == "__main__":
       # with open(f"./music_in_C/{filename}", "w") as f:
       #   pass
     except AssertionError as err:
+      print(f"{filename}: {err}")
+    except ValueError as err:
       print(f"{filename}: {err}")
     except:
       print(f"Unexpected error in {filename}")
