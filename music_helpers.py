@@ -47,7 +47,8 @@ def to_cannonical_note(note):
   Example: g-   =>  f#
   Example: b#   =>  cc
   Example: AA#- =>  AA
-  Example: c-   =>  B  """
+  Example: c-   =>  B  
+  """
   if "#" not in note and "-" not in note:
     return note
   idx, register = get_cannonical_note_idx(note)
@@ -59,3 +60,25 @@ def to_cannonical_note(note):
     ## base note c in register -2 => CC 
     cannonical_base_note = cannonical_base_note.upper() * (register * -1)
   return cannonical_base_note + CANNONICAL_NOTES[idx][1:]
+
+def convert_to_duration(note):
+  """Given a **kern note, returns the duration of this note. 
+  Example: 4r -> 1/4
+  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 0.875
+  `.` has duration 0."""
+  number=""
+  dots = 0
+  for c in note:
+    if c.isdigit():
+      number += c
+    if c == ".":
+      dots += 1
+  if number == "":
+    return 0
+  number = int(number)
+  duration = 1 / float(number)
+  added_duration = float(duration)
+  for i in range(dots):
+    added_duration /= 2
+    duration += added_duration
+  return duration

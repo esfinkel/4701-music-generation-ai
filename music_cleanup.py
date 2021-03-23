@@ -1,5 +1,6 @@
 import os
 import re
+from music_helpers import convert_to_duration, to_cannonical_note
 
 def should_remove_line(line):
   """Returns true if this is a line that should not 
@@ -83,29 +84,6 @@ def update_hand_columns(line, hand_columns):
     i -= 1
   return [left_cols, right_cols]
 
-def convert_to_duration(note):
-  """Given a **kern note, returns the duration of this note. 
-  Example: 4r -> 1/4
-  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 0.875
-  `.` has duration 0."""
-  number=""
-  dots = 0
-  for c in note:
-    if c.isdigit():
-      number += c
-    if c == ".":
-      dots += 1
-  if number == "":
-    return 0
-  number = int(number)
-  duration = 1 / float(number)
-  added_duration = float(duration)
-  for i in range(dots):
-    added_duration /= 2
-    duration += added_duration
-  return duration
-
-
 def combine_notes(notes):
   """return a list of notes such that the list is either: a single
   rest of the shortest duration in the list (if the list was made up 
@@ -115,6 +93,8 @@ def combine_notes(notes):
   duration comes first. 
   Notes with the same pitch but different durations are not 
   considered to be duplicates."""
+  if len(notes) == 0:
+    return ["."]
   notes = sorted(list(set(notes)), key=lambda x: convert_to_duration(x))
   all_dots = True
   all_rests = True 
@@ -129,6 +109,23 @@ def combine_notes(notes):
     return ["."]
   return list(filter(lambda x: 'r' not in x and x != ".", notes))
 
+def convert_notes_to_cannonical_form(notes):
+  """Returned notes, but with every note converted to its
+  'cannonical form'. Rests and `.`s are unchanged. 
+  Example: ["2.f##]", "4c-"]  => ["2.g]", "4B"]
+  Example: ["."] => ["."]
+  Example: ["4r"] => ["4r"] 
+  Requires: If notes contains a `.` or rest, then notes has length 1. """
+  if len(notes) == 1:
+    if "." == notes[0] or "r" in notes[0]:
+      return notes
+  cannonical_notes = []
+  for note in notes:
+    pitch = re.sub("[^A-Ga-g#\-]", "", note)
+    cannonical_pitch = to_cannonical_note(pitch)
+    cannonical_notes.append(re.sub("[A-Ga-g]+[#\-]*", cannonical_pitch, note))
+  return cannonical_notes
+
 def clean_line(line, hand_columns):
   """Outputs `line` with extraneous characters and columns removed. 
   Condenses all left hand columns and right hand columns into a single column
@@ -142,8 +139,8 @@ def clean_line(line, hand_columns):
       left_notes.extend(columns[i].split(" "))
     if i in hand_columns[1]:
       right_notes.extend(columns[i].split(" "))
-  left_notes = combine_notes(left_notes)
-  right_notes = combine_notes(right_notes)
+  left_notes = convert_notes_to_cannonical_form(combine_notes(left_notes))
+  right_notes = convert_notes_to_cannonical_form(combine_notes(right_notes))
   return " ".join(left_notes) + "\t" + " ".join(right_notes)
 
 def clean_file(f):
