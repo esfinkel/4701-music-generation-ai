@@ -1,5 +1,6 @@
 # Data
 raw*/
+processed*/
 log_*.txt
 
 # other
