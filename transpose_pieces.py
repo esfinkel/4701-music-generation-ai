@@ -34,11 +34,11 @@ def get_key(f):
             if "#" in key:
                 assert key == "".join(sharp_order[:len(key.split("#")) - 1]), \
                         f"key doesn't match standard sharp odering: {key}"
-                return sharp_keys[len(key.split("#"))]
+                return sharp_keys[len(key.split("#")) - 1]
             else:
                 assert key == "".join(flat_order[:len(key.split("-")) - 1]), \
                         f"key doesn't match standard flat odering: {key}"
-                return flat_keys[len(key.split("-"))]
+                return flat_keys[len(key.split("-")) - 1]
     raise ValueError("No **kern line specifying key.")
 
 def transpose_piece_by_octaves(text: str, octaves: int):
@@ -210,3 +210,4 @@ if __name__ == "__main__":
             print(f"{filename}: {err}")
         except:
             print(f"Unexpected error in {filename}")
+        # break
