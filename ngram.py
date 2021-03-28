@@ -51,6 +51,8 @@ def gather_counts(directory):
   prev_prev = "<s>"
   prev = "<s>"
   for filename in os.listdir(f"./{directory}"):
+    if ".DS_Store" in filename:
+      continue
     with open(f"./{directory}/{filename}", "r") as f:
       for line in f:
         line = line.strip()
