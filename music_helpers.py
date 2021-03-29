@@ -1,3 +1,5 @@
+import math
+
 ## standardized note representations 
 CANNONICAL_NOTES = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", 
                     "a", "a#", "b"]
@@ -82,3 +84,29 @@ def convert_to_duration(note):
     added_duration /= 2
     duration += added_duration
   return duration
+
+def convert_duration_to_notation(duration):
+  """Converts a float duration to a number followed by some number
+  of `.`, such that 
+  convert_to_duration(convert_duration_to_notation(duration)) = duration"""
+  if duration == 0:
+    return "."
+  notation = ""
+  ## ex: for duration 0.75, pow_2 = -1
+  pow_2 = math.floor(math.log(duration, 2))
+  ## ex: value is 1/2
+  value = 2 ** pow_2
+  ## ex: appearance is 2
+  appearance = 1 / value
+  if int(appearance) == appearance:
+    notation += str(int(appearance))
+  else:
+    notation += str(appearance)
+  ## ex: remainder is 1/4 
+  remainder = duration - value
+  while remainder > 0:
+    value /= 2
+    notation += "." ##ex: we add one . then remainder -= 1/4 
+    remainder -= value
+  return notation
+  
