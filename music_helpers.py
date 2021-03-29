@@ -63,6 +63,32 @@ def to_cannonical_note(note):
     cannonical_base_note = cannonical_base_note.upper() * (register * -1)
   return cannonical_base_note + CANNONICAL_NOTES[idx][1:]
 
+def get_duration_of_spine(spine):
+  """Given **kern spine line, returns just the duration portion. 
+  If there are multiple notes in the line, returns just the duration
+  portion of the first note. """
+  number = ""
+  for c in spine:
+    if c.isdigit():
+      number += c
+    if c == ".":
+      number += c
+    if c == " ":
+      return number
+  return number
+
+def get_left_note(spine):
+  """Given kern spine line, returns the note value of the leftmost note.
+  Example: 4AA 2c  => AA"""
+  if spine == ".":
+    return "."
+  left_note = spine.split(" ")[0]
+  note = ""
+  for c in left_note:
+    if (not c.isdigit()) and c != ".":
+      note += c
+  return note
+
 def convert_to_duration(note):
   """Given a **kern note, returns the duration of this note. 
   Example: 4r -> 1/4
