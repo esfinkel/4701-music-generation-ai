@@ -159,6 +159,9 @@ def add_barlines(kern_string):
   return out
 
 def crawl_forward(i, note_pitch, spine, lines):
+  """Assumes we have found a note with '['. Crawls forward through lines 
+  looking for a string of pitch matches to note_pitch, and adding []
+  and ] until the string ends. """
   j = i
   while True:
     if j + 1 < len(lines) and note_pitch in lines[j+1].split("\t")[spine]:
@@ -185,6 +188,10 @@ def crawl_forward(i, note_pitch, spine, lines):
   return lines
 
 def crawl_backward(i, note_pitch, spine, lines):
+  """Assumes we have found a note with ']'. Crawls backwards through
+  lines looking for pitch matches of note_pitch in the current spine. 
+  Adds [] and [ to extend the tie backwards to matching notes, until
+  the string of pitch matches is broken."""
   j = i
   while True:
     if j-1 >= 0 and note_pitch in lines[j-1].split("\t")[spine]:
@@ -212,8 +219,12 @@ def crawl_backward(i, note_pitch, spine, lines):
 
 
 def fix_ties_for_spine(spine, lines, i):
+  """Given a spine number and the index of a line in lines, 
+  crawl forward or backwards in the lines, greedily extending
+  ties as far as possible. This may overwrite sequences like
+  [..][..]..., and I'm okay with that. 
+  Spine must be 1 or 0.
   """
-  spine must be 1 or 0"""
   line = lines[i]
   for note in line.split("\t")[spine].split(" "):
     if "[" in note and "]" not in note:
@@ -225,7 +236,13 @@ def fix_ties_for_spine(spine, lines, i):
   return lines
 
 def fix_ties(kern_string):
-  """Makes sure that all ties in the piece are well-formed. """
+  """Makes sure that all ties in the piece are well-formed. 
+  
+    Example: [4a [4b 4c    4d 4c 4b       [4a [4b 4c     4d 4c [4b 
+             4a 4c 4b     4b 4c      =>   [4a] 4c [4b]   [4b] 4
+             4b 4a        4b]             [4b] 4a]       4b]
+             4b           4a              4b]            4a
+  """
   lines = kern_string.split("\n")
   for i in range(len(lines)):
     line = lines[i]
@@ -245,13 +262,8 @@ def convert_to_good_kern(kern_string):
 
 
 if __name__ == "__main__":
-  kern = """
-  4a\t4b
-  4a]\t4b
-  """
-  print(fix_ties(kern))
 
-  # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
-  #   fixed = fix_rhythm(f.read())
-  #   lines = add_barlines(fixed)
-  #   print(lines)
+  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
+    fixed = fix_rhythm(f.read())
+    lines = add_barlines(fixed)
+    print(lines)
