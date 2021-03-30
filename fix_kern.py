@@ -162,24 +162,24 @@ def crawl_forward(i, note_pitch, spine, lines):
   j = i
   while True:
     if j + 1 < len(lines) and note_pitch in lines[j+1].split("\t")[spine]:
-      next_line = lines[j+1].split("\t")[spine]
+      next_line = lines[j+1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(next_line, note_pitch)
       next_line_notes = next_line.split(" ")
       if next_line_notes[pitch_ind][-1:] != "]":
         next_line_notes[pitch_ind] += "]"
       if next_line_notes[pitch_ind][0] != "[":
         next_line_notes[pitch_ind] = "[" + next_line_notes[pitch_ind]
-      lines[j+1] = lines[j+1].split("\t")[0] + " ".join(next_line_notes) \
+      lines[j+1] = lines[j+1].split("\t")[0] +"\t"+ " ".join(next_line_notes) \
                     if spine == 1 else \
-                      " ".join(next_line_notes) + lines[j+1].split("\t")[1]
+                      " ".join(next_line_notes) +"\t"+ lines[j+1].split("\t")[1]
     else:
-      curr_line = lines[j].split("\t")[spine]
+      curr_line = lines[j].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(curr_line, note_pitch)
       curr_line_notes = curr_line.split(" ")
       curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][1:]
-      lines[j] = lines[j].split("\t")[0] + " ".join(curr_line_notes) \
+      lines[j] = lines[j].split("\t")[0] +"\t"+ " ".join(curr_line_notes) \
                     if spine == 1 else \
-                      " ".join(curr_line_notes) + lines[j].split("\t")[1]
+                      " ".join(curr_line_notes) +"\t"+ lines[j].split("\t")[1]
       break
     j += 1
   return lines
@@ -188,24 +188,24 @@ def crawl_backward(i, note_pitch, spine, lines):
   j = i
   while True:
     if j-1 >= 0 and note_pitch in lines[j-1].split("\t")[spine]:
-      prev_line = lines[j-1].split("\t")[spine]
+      prev_line = lines[j-1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(prev_line, note_pitch)
       prev_line_notes = prev_line.split(" ")
       if prev_line_notes[pitch_ind][-1:] != "]":
         prev_line_notes[pitch_ind] += "]"
       if prev_line_notes[pitch_ind][0] != "[":
         prev_line_notes[pitch_ind] = "[" + prev_line_notes[pitch_ind]
-      lines[j-1] = lines[j-1].split("\t")[0] + " ".join(prev_line_notes) \
+      lines[j-1] = lines[j-1].split("\t")[0] +"\t"+ " ".join(prev_line_notes) \
                     if spine == 1 else \
-                      " ".join(prev_line_notes) + lines[j-1].split("\t")[1]
+                      " ".join(prev_line_notes) +"\t"+ lines[j-1].split("\t")[1]
     else:
-      curr_line = lines[j].split("\t")[spine]
+      curr_line = lines[j].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(curr_line, note_pitch)
       curr_line_notes = curr_line.split(" ")
       curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][:-1]
-      lines[j] = lines[j].split("\t")[0] + " ".join(curr_line_notes) \
+      lines[j] = lines[j].split("\t")[0] +"\t"+ " ".join(curr_line_notes) \
                     if spine == 1 else \
-                      " ".join(curr_line_notes) + lines[j].split("\t")[1]
+                      " ".join(curr_line_notes) +"\t"+ lines[j].split("\t")[1]
       break
     j -= 1
   return lines
@@ -245,14 +245,13 @@ def convert_to_good_kern(kern_string):
 
 
 if __name__ == "__main__":
-  # kern = """
-  # 1A\t4d
-  # .\t1a
-  # 4a\t.
-  # """
-  # print(fix_rhythm(kern))
+  kern = """
+  4a\t4b
+  4a]\t4b
+  """
+  print(fix_ties(kern))
 
-  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
-    fixed = fix_rhythm(f.read())
-    lines = add_barlines(fixed)
-    print(lines)
+  # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
+  #   fixed = fix_rhythm(f.read())
+  #   lines = add_barlines(fixed)
+  #   print(lines)
