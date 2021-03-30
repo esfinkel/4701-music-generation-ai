@@ -85,9 +85,27 @@ def get_left_note(spine):
   left_note = spine.split(" ")[0]
   note = ""
   for c in left_note:
-    if (not c.isdigit()) and c != ".":
+    if (not c.isdigit()) and c not in {".", "]", "[", "#", "-"}:
       note += c
   return note
+
+def get_note_pitch(note):
+  """Given a kern note, returns only the pitch portion."""
+  pitch = ""
+  for c in note:
+    if (not c.isdigit()) and c not in {".", "]", "[", "#", "-"}:
+      pitch += c
+  return pitch
+
+def get_index_of_pitch(line, pitch):
+  """Given a spine line, returns the index at which the pitch 
+  occurs, or -1 if the pitch doesn't occur. """
+  notes = line.strip().split(" ")
+  for i in range(len(notes)):
+    note = notes[i]
+    if pitch in note:
+      return i
+  return -1
 
 def convert_to_duration(note):
   """Given a **kern note, returns the duration of this note. 
