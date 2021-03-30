@@ -1,6 +1,6 @@
 import os
 import re
-from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note
+from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch
 
 def n_lines_of(n, l_note, r_note):
   lines = ""
@@ -157,6 +157,88 @@ def add_barlines(kern_string):
       out += "=\t=\n"
       r_dur = 0
   return out
+
+def crawl_forward(i, note_pitch, spine, lines):
+  j = i
+  while True:
+    if j + 1 < len(lines) and note_pitch in lines[j+1].split("\t")[spine]:
+      next_line = lines[j+1].split("\t")[spine]
+      pitch_ind = get_index_of_pitch(next_line, note_pitch)
+      next_line_notes = next_line.split(" ")
+      if next_line_notes[pitch_ind][-1:] != "]":
+        next_line_notes[pitch_ind] += "]"
+      if next_line_notes[pitch_ind][0] != "[":
+        next_line_notes[pitch_ind] = "[" + next_line_notes[pitch_ind]
+      lines[j+1] = lines[j+1].split("\t")[0] + " ".join(next_line_notes) \
+                    if spine == 1 else \
+                      " ".join(next_line_notes) + lines[j+1].split("\t")[1]
+    else:
+      curr_line = lines[j].split("\t")[spine]
+      pitch_ind = get_index_of_pitch(curr_line, note_pitch)
+      curr_line_notes = curr_line.split(" ")
+      curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][1:]
+      lines[j] = lines[j].split("\t")[0] + " ".join(curr_line_notes) \
+                    if spine == 1 else \
+                      " ".join(curr_line_notes) + lines[j].split("\t")[1]
+      break
+    j += 1
+  return lines
+
+def crawl_backward(i, note_pitch, spine, lines):
+  j = i
+  while True:
+    if j-1 >= 0 and note_pitch in lines[j-1].split("\t")[spine]:
+      prev_line = lines[j-1].split("\t")[spine]
+      pitch_ind = get_index_of_pitch(prev_line, note_pitch)
+      prev_line_notes = prev_line.split(" ")
+      if prev_line_notes[pitch_ind][-1:] != "]":
+        prev_line_notes[pitch_ind] += "]"
+      if prev_line_notes[pitch_ind][0] != "[":
+        prev_line_notes[pitch_ind] = "[" + prev_line_notes[pitch_ind]
+      lines[j-1] = lines[j-1].split("\t")[0] + " ".join(prev_line_notes) \
+                    if spine == 1 else \
+                      " ".join(prev_line_notes) + lines[j-1].split("\t")[1]
+    else:
+      curr_line = lines[j].split("\t")[spine]
+      pitch_ind = get_index_of_pitch(curr_line, note_pitch)
+      curr_line_notes = curr_line.split(" ")
+      curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][:-1]
+      lines[j] = lines[j].split("\t")[0] + " ".join(curr_line_notes) \
+                    if spine == 1 else \
+                      " ".join(curr_line_notes) + lines[j].split("\t")[1]
+      break
+    j -= 1
+  return lines
+
+
+def fix_ties_for_spine(spine, lines, i):
+  """
+  spine must be 1 or 0"""
+  line = lines[i]
+  for note in line.split("\t")[spine].split(" "):
+    if "[" in note and "]" not in note:
+      note_pitch = get_note_pitch(note)
+      lines = crawl_forward(i, note_pitch, spine, lines)
+    elif "]" in note and "[" not in note:
+      note_pitch = get_note_pitch(note)
+      lines = crawl_backward(i, note_pitch, spine, lines)
+  return lines
+
+def fix_ties(kern_string):
+  """Makes sure that all ties in the piece are well-formed. """
+  lines = kern_string.split("\n")
+  for i in range(len(lines)):
+    line = lines[i]
+    if line.strip() == "":
+      continue
+    if "[" not in line and "]" not in line:
+      continue
+    if "[" in line.split("\t")[0] or "]" in line.split("\t")[0]:
+      lines = fix_ties_for_spine(0, lines, i)
+    if "[" in line.split("\t")[1] or "]" in line.split("\t")[1]:
+      lines = fix_ties_for_spine(1, lines, i)
+  return "\n".join(lines) + "\n"
+
 
 def convert_to_good_kern(kern_string):
   pass
