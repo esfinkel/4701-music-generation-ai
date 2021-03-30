@@ -258,12 +258,29 @@ def fix_ties(kern_string):
 
 
 def convert_to_good_kern(kern_string):
-  pass
+  kern_string = kern_string.strip()
+  rhythm_fixed = fix_rhythm(kern_string)
+  ties_fixed = fix_ties(rhythm_fixed)
+  with_barlines = add_barlines(ties_fixed)
+  return (  "**kern" +"\t"  +"**kern\n" 
+          + "*staff2"+"\t"  +"*staff1\n"
+          + "*Ipiano"+"\t"  +"*Ipiano\n"
+          + "*clefF4"+"\t"  +"*clefG2\n"
+          +  with_barlines
+          + "*-"+"\t"+"*-\n")
 
 
 if __name__ == "__main__":
 
-  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
-    fixed = fix_rhythm(f.read())
-    lines = add_barlines(fixed)
-    print(lines)
+  kern_string = """
+  4a\t2b
+  4r\t4r
+  .\t4a
+  .\t4a]
+  """
+  print(convert_to_good_kern(kern_string))
+
+  # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
+  #   fixed = fix_rhythm(f.read())
+  #   lines = add_barlines(fixed)
+  #   print(lines)
