@@ -143,6 +143,20 @@ def fix_rhythm(kern_string):
     rhythm_fix += n_lines_of(n, f"{d}r", ".")
   return rhythm_fix
 
+def add_barlines(kern_string):
+  """Insert a barline every 4 quarter notes in the right hand"""
+  out = ""
+  r_dur = 0
+  for line in kern_string.split("\n"):
+    if line.strip() == "":
+      continue
+    r_notes = line.split("\t")[1]
+    r_dur += convert_to_duration(get_duration_of_spine(r_notes))
+    out += line+"\n"
+    if r_dur >= 1:
+      out += "=\t=\n"
+      r_dur = 0
+  return out
 
 def convert_to_good_kern(kern_string):
   pass
@@ -158,4 +172,5 @@ if __name__ == "__main__":
 
   with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
     fixed = fix_rhythm(f.read())
-    print(fixed)
+    lines = add_barlines(fixed)
+    print(lines)
