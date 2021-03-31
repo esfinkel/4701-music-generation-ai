@@ -1,9 +1,19 @@
 import math
+from fractions import Fraction
 
 ## standardized note representations 
 CANNONICAL_NOTES = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", 
                     "a", "a#", "b"]
 
+def frac_add(f1, f2):
+  n1,d1 = f1.numerator, f1.denominator
+  n2,d2 = f2.numerator, f2.denominator
+  return Fraction(n1*d2+n2*d1, d1*d2)
+
+def frac_sub(f1, f2):
+  n1,d1 = f1.numerator, f1.denominator
+  n2,d2 = f2.numerator, f2.denominator
+  return Fraction(n1*d2-n2*d1, d1*d2)
 
 def get_note_register(note):
   """ Returns the register of a note, where register 0 is 
@@ -97,14 +107,18 @@ def get_note_pitch(note):
       pitch += c
   return pitch
 
-def get_index_of_pitch(line, pitch):
+def get_index_of_pitch(line, pitch, start_char=None, end_char=None):
   """Given a spine line, returns the index at which the pitch 
-  occurs, or -1 if the pitch doesn't occur. """
+  occurs, or -1 if the pitch doesn't occur. If start_char is not None,
+  then the note containing the pitch must start with start_char. 
+  Similarly with end_char. """
   notes = line.strip().split(" ")
   for i in range(len(notes)):
     note_pitch = get_note_pitch(notes[i])
     if pitch == note_pitch:
-      return i
+      if (start_char is None or notes[i][0] == start_char) \
+          and (end_char is None or notes[i][-1] == end_char):
+        return i
   return -1
 
 def note_in_spine(spine_line, pitch):
@@ -137,6 +151,29 @@ def convert_to_duration(note):
   for i in range(dots):
     added_duration /= 2
     duration += added_duration
+  return duration
+
+def convert_to_dur_frac(note):
+  """Given a **kern note, returns the duration of this note, as a fraction. 
+  Example: 4r -> 1/4
+  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 7/8
+  `.` has duration 0."""
+  number=""
+  dots = 0
+  for c in note:
+    if c.isdigit():
+      number += c
+    if c == ".":
+      dots += 1
+  if number == "":
+    return 0
+  number = int(number)
+  duration = Fraction(1, number)
+  added_duration = Fraction(duration)
+  for i in range(dots):
+    added_duration = Fraction(added_duration.numerator, 
+                              added_duration.denominator * 2)
+    duration = frac_add(added_duration, duration)
   return duration
 
 def convert_duration_to_notation(duration):

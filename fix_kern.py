@@ -1,13 +1,12 @@
 import os
 import re
-from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine
+from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine, convert_to_dur_frac, frac_add, frac_sub
+from fractions import Fraction
 
 def n_lines_of(n, l_note, r_note):
   lines = ""
   for i in range(n):
     lines += f"{l_note}\t{r_note}\n"
-    if i < 10:
-      print(f"{l_note}\t{r_note}\n")
   return lines
 
 def fix_negative_duration(l_duration, r_duration, add_line, 
@@ -18,34 +17,30 @@ def fix_negative_duration(l_duration, r_duration, add_line,
   of the remaining duration in the left hand. We fix this by shortening
   the note in the right hand to be exactly equal to the remining 
   left hand duration."""
-  l_dur_this_line = convert_to_duration(get_duration_of_spine(add_line[0]))
-  r_dur_this_line = convert_to_duration(get_duration_of_spine(add_line[1]))
-  if l_duration < 0:
-    n,d = (l_duration - (l_dur_this_line - time_step)).as_integer_ratio()
+  l_dur_this_line = convert_to_dur_frac(get_duration_of_spine(add_line[0]))
+  r_dur_this_line = convert_to_dur_frac(get_duration_of_spine(add_line[1]))
+  if l_duration.numerator < 0:
+    fixed_l_dur = frac_sub(l_duration, frac_sub(l_dur_this_line, time_step))
+    n,d = fixed_l_dur.numerator, fixed_l_dur.denominator
     r_note_leftmost = get_left_note(add_line[1])
     r_line_remainder = " ".join(add_line[1].split(" ")[1:])
     if n == 1:
       rhythm_fix += f".\t{d}{r_note_leftmost} {r_line_remainder}\n"
-      print(f".\t{d}{r_note_leftmost} {r_line_remainder}\n")
     elif n >= 2:
       rhythm_fix += f".\t[{d}{r_note_leftmost} {r_line_remainder}\n"
-      print(f".\t[{d}{r_note_leftmost} {r_line_remainder}\n")
       rhythm_fix += n_lines_of(n-2, ".", f"[{d}{r_note_leftmost}]")
       rhythm_fix += f".\t{d}{r_note_leftmost}]\n"
-      print(f".\t{d}{r_note_leftmost}]\n")
-  elif r_duration < 0:
-    n,d = (r_duration - (r_dur_this_line - time_step)).as_integer_ratio()
+  elif r_duration.numerator < 0:
+    fixed_r_dur = frac_sub(r_duration, frac_sub(r_dur_this_line, time_step))
+    n,d = fixed_r_dur.numerator, fixed_r_dur.denominator
     l_note_leftmost = get_left_note(add_line[0])
     l_line_remainder = " ".join(add_line[1].split(" ")[1:])
     if n == 1:
       rhythm_fix += f"{d}{l_note_leftmost} {l_line_remainder}\t.\n"
-      print(f"{d}{l_note_leftmost} {l_line_remainder}\t.\n")
     elif n >= 2:
       rhythm_fix += f"[{d}{l_note_leftmost} {l_line_remainder}\t.\n"
-      print(f"[{d}{l_note_leftmost} {l_line_remainder}\t.\n")
       rhythm_fix += n_lines_of(n-2,f"[{d}{l_note_leftmost}]",".")
       rhythm_fix += f"{d}{l_note_leftmost}]\t.\n"
-      print(f"{d}{l_note_leftmost}]\t.\n")
   return rhythm_fix
 
 def get_next_line(l_duration, l_note, r_duration, r_note, rhythm_fix):
@@ -59,7 +54,7 @@ def get_next_line(l_duration, l_note, r_duration, r_note, rhythm_fix):
   
   Assumes l_duration == 0 OR r_duration == 0"""
   add_line = []
-  if l_duration == 0 and r_duration == 0:
+  if l_duration.numerator == 0 and r_duration.numerator == 0:
     if l_note == ".":
       ## the left hand MUST play a note if it has no remaining duration
       r_dur_this_line = get_duration_of_spine(r_note)
@@ -71,28 +66,28 @@ def get_next_line(l_duration, l_note, r_duration, r_note, rhythm_fix):
     else:
       ## this line is legal
       add_line = [l_note,r_note]
-  elif l_duration > 0 and l_note != ".":
+  elif l_duration.numerator > 0 and l_note != ".":
     ## the left hand is palying a note but it has duration remaining
     if r_note != ".":
       add_line = [".",r_note] # delete the note 
     else:
       ## deleting the note would delete the line 
       ## also, the right hand isn't playing a note, but it should be! 
-      n,d = l_duration.as_integer_ratio()
+      n,d = l_duration.numerator, l_duration.denominator
       rhythm_fix += n_lines_of(n, ".", f"{d}r") # add rests in right hand to 
                                                 # deplete left hand duration
-      l_duration = 0
+      l_duration = Fraction(0)
       add_line = [l_note, f"{get_duration_of_spine(l_note)}r"]
-  elif r_duration > 0 and r_note != ".":
+  elif r_duration.numerator > 0 and r_note != ".":
     ## right hand is playing note but it has remaining duration
     if l_note != ".":
       add_line = [l_note, "."] # delete extra note 
     else:
       ## deleting note would delete line, also, left hand is not playing
       ## a note, but it should be. 
-      n,d = r_duration.as_integer_ratio()
+      n,d = r_duration.numerator, r_duration.denominator
       rhythm_fix += n_lines_of(n, f"{d}r", ".")
-      r_duration = 0
+      r_duration = Fraction(0)
       add_line = [f"{get_duration_of_spine(r_note)}r", r_note]
   else:
     ## this line is legal
@@ -109,8 +104,8 @@ def fix_rhythm(kern_string):
   
   Returns a kern_string with potentially modified notes and rhythms to make
   the sequence of notes legal."""
-  l_duration = 0.0
-  r_duration = 0.0
+  l_duration = Fraction(0)
+  r_duration = Fraction(0)
   rhythm_fix = ""
   for line in kern_string.split("\n"):
     if line.strip() == "":
@@ -120,35 +115,35 @@ def fix_rhythm(kern_string):
     l_note, r_note = l_note.strip(), r_note.strip()
     if l_note == "." and r_note == ".":
       continue
+    if l_note.strip() == "" or r_note.strip() == "":
+      continue
 
     ## determine a legal next line
     add_line, rhythm_fix, l_duration, r_duration = get_next_line(l_duration, 
         l_note, r_duration, r_note, rhythm_fix) 
     ## advance one time step, given the duration of the line that was 
     ## just added 
-    l_dur_this_line = convert_to_duration(get_duration_of_spine(add_line[0]))
-    r_dur_this_line = convert_to_duration(get_duration_of_spine(add_line[1]))
+    l_dur_this_line = convert_to_dur_frac(get_duration_of_spine(add_line[0]))
+    r_dur_this_line = convert_to_dur_frac(get_duration_of_spine(add_line[1]))
     time_step = r_dur_this_line if l_dur_this_line == 0 \
                 else (l_dur_this_line if r_dur_this_line == 0 \
                   else min(l_dur_this_line, r_dur_this_line))
-    l_duration += l_dur_this_line - time_step
-    r_duration += r_dur_this_line - time_step 
+    l_duration = frac_add(l_duration, frac_sub(l_dur_this_line, time_step))
+    r_duration = frac_add(r_duration, frac_sub(r_dur_this_line,time_step))
 
-    if l_duration < 0 or r_duration < 0:
+    if l_duration.numerator < 0 or r_duration.numerator < 0:
       rhythm_fix = fix_negative_duration(l_duration, r_duration, add_line, 
                                           rhythm_fix, time_step)
-      l_duration = 0
-      r_duration = 0
+      l_duration = Fraction(0)
+      r_duration = Fraction(0)
     else:
       rhythm_fix += f"{add_line[0]}\t{add_line[1]}\n"
-      print(f"{add_line[0]}\t{add_line[1]}\n")
-    print(l_duration, r_duration)
   ## clean up end-of-piece rhythm
-  if l_duration > 0:
-    n,d = l_duration.as_integer_ratio()
+  if l_duration.numerator > 0:
+    n,d = l_duration.numerator, l_duration.denominator
     rhythm_fix += n_lines_of(n, ".", f"{d}r")
   elif r_duration > 0:
-    n,d = r_duration.as_integer_ratio()
+    n,d = r_duration.numerator, r_duration.denominator
     rhythm_fix += n_lines_of(n, f"{d}r", ".")
   return rhythm_fix
 
@@ -187,7 +182,7 @@ def crawl_forward(i, note_pitch, spine, lines):
                       " ".join(next_line_notes) +"\t"+ lines[j+1].split("\t")[1]
     else:
       curr_line = lines[j].split("\t")[spine].strip()
-      pitch_ind = get_index_of_pitch(curr_line, note_pitch)
+      pitch_ind = get_index_of_pitch(curr_line, note_pitch, start_char="[")
       curr_line_notes = curr_line.split(" ")
       curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][1:]
       lines[j] = lines[j].split("\t")[0] +"\t"+ " ".join(curr_line_notes) \
@@ -217,7 +212,7 @@ def crawl_backward(i, note_pitch, spine, lines):
                       " ".join(prev_line_notes) +"\t"+ lines[j-1].split("\t")[1]
     else:
       curr_line = lines[j].split("\t")[spine].strip()
-      pitch_ind = get_index_of_pitch(curr_line, note_pitch)
+      pitch_ind = get_index_of_pitch(curr_line, note_pitch, end_char="]")
       curr_line_notes = curr_line.split(" ")
       curr_line_notes[pitch_ind] = curr_line_notes[pitch_ind][:-1]
       lines[j] = lines[j].split("\t")[0] +"\t"+ " ".join(curr_line_notes) \
@@ -290,5 +285,7 @@ if __name__ == "__main__":
   # """
   # print(convert_to_good_kern(kern_string))
 
-  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 3 in C major") as f:
-    print(convert_to_good_kern(f.read()))
+  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 16 in G major") as f:
+    good_kern = convert_to_good_kern(f.read())
+    with open("./test.txt", "w") as fw:
+      fw.write(good_kern)
