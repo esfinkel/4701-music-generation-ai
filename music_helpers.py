@@ -102,10 +102,20 @@ def get_index_of_pitch(line, pitch):
   occurs, or -1 if the pitch doesn't occur. """
   notes = line.strip().split(" ")
   for i in range(len(notes)):
-    note = notes[i]
-    if pitch in note:
+    note_pitch = get_note_pitch(notes[i])
+    if pitch == note_pitch:
       return i
   return -1
+
+def note_in_spine(spine_line, pitch):
+  """Given a spine line, returns true if this pitch occurs in a note
+  in the line."""
+  notes = spine_line.strip().split(" ")
+  for i in range(len(notes)):
+    note_pitch = get_note_pitch(notes[i])
+    if note_pitch == pitch:
+      return True
+  return False
 
 def convert_to_duration(note):
   """Given a **kern note, returns the duration of this note. 

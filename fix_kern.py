@@ -1,11 +1,13 @@
 import os
 import re
-from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch
+from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine
 
 def n_lines_of(n, l_note, r_note):
   lines = ""
   for i in range(n):
     lines += f"{l_note}\t{r_note}\n"
+    if i < 10:
+      print(f"{l_note}\t{r_note}\n")
   return lines
 
 def fix_negative_duration(l_duration, r_duration, add_line, 
@@ -24,20 +26,26 @@ def fix_negative_duration(l_duration, r_duration, add_line,
     r_line_remainder = " ".join(add_line[1].split(" ")[1:])
     if n == 1:
       rhythm_fix += f".\t{d}{r_note_leftmost} {r_line_remainder}\n"
+      print(f".\t{d}{r_note_leftmost} {r_line_remainder}\n")
     elif n >= 2:
       rhythm_fix += f".\t[{d}{r_note_leftmost} {r_line_remainder}\n"
+      print(f".\t[{d}{r_note_leftmost} {r_line_remainder}\n")
       rhythm_fix += n_lines_of(n-2, ".", f"[{d}{r_note_leftmost}]")
       rhythm_fix += f".\t{d}{r_note_leftmost}]\n"
+      print(f".\t{d}{r_note_leftmost}]\n")
   elif r_duration < 0:
     n,d = (r_duration - (r_dur_this_line - time_step)).as_integer_ratio()
     l_note_leftmost = get_left_note(add_line[0])
     l_line_remainder = " ".join(add_line[1].split(" ")[1:])
     if n == 1:
       rhythm_fix += f"{d}{l_note_leftmost} {l_line_remainder}\t.\n"
+      print(f"{d}{l_note_leftmost} {l_line_remainder}\t.\n")
     elif n >= 2:
       rhythm_fix += f"[{d}{l_note_leftmost} {l_line_remainder}\t.\n"
+      print(f"[{d}{l_note_leftmost} {l_line_remainder}\t.\n")
       rhythm_fix += n_lines_of(n-2,f"[{d}{l_note_leftmost}]",".")
       rhythm_fix += f"{d}{l_note_leftmost}]\t.\n"
+      print(f"{d}{l_note_leftmost}]\t.\n")
   return rhythm_fix
 
 def get_next_line(l_duration, l_note, r_duration, r_note, rhythm_fix):
@@ -131,9 +139,10 @@ def fix_rhythm(kern_string):
                                           rhythm_fix, time_step)
       l_duration = 0
       r_duration = 0
-      x = rhythm_fix.split("\n")[-2]
     else:
       rhythm_fix += f"{add_line[0]}\t{add_line[1]}\n"
+      print(f"{add_line[0]}\t{add_line[1]}\n")
+    print(l_duration, r_duration)
   ## clean up end-of-piece rhythm
   if l_duration > 0:
     n,d = l_duration.as_integer_ratio()
@@ -164,7 +173,8 @@ def crawl_forward(i, note_pitch, spine, lines):
   and ] until the string ends. """
   j = i
   while True:
-    if j + 1 < len(lines) and note_pitch in lines[j+1].split("\t")[spine]:
+    if j + 1 < len(lines) \
+      and note_in_spine(note_pitch, lines[j+1].split("\t")[spine]):
       next_line = lines[j+1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(next_line, note_pitch)
       next_line_notes = next_line.split(" ")
@@ -194,7 +204,7 @@ def crawl_backward(i, note_pitch, spine, lines):
   the string of pitch matches is broken."""
   j = i
   while True:
-    if j-1 >= 0 and note_pitch in lines[j-1].split("\t")[spine]:
+    if j-1 >= 0 and note_in_spine(note_pitch, lines[j-1].split("\t")[spine]):
       prev_line = lines[j-1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(prev_line, note_pitch)
       prev_line_notes = prev_line.split(" ")
@@ -272,15 +282,13 @@ def convert_to_good_kern(kern_string):
 
 if __name__ == "__main__":
 
-  kern_string = """
-  4a\t2b
-  4r\t4r
-  .\t4a
-  .\t4a]
-  """
-  print(convert_to_good_kern(kern_string))
+  # kern_string = """
+  # 4a\t2b
+  # 4r\t4r
+  # .\t4a
+  # .\t4a]
+  # """
+  # print(convert_to_good_kern(kern_string))
 
-  # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 2 in A major") as f:
-  #   fixed = fix_rhythm(f.read())
-  #   lines = add_barlines(fixed)
-  #   print(lines)
+  with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 3 in C major") as f:
+    print(convert_to_good_kern(f.read()))
