@@ -121,7 +121,7 @@ def get_index_of_pitch(line, pitch, start_char=None, end_char=None):
         return i
   return -1
 
-def note_in_spine(spine_line, pitch):
+def note_in_spine(pitch, spine_line):
   """Given a spine line, returns true if this pitch occurs in a note
   in the line."""
   notes = spine_line.strip().split(" ")

@@ -167,9 +167,15 @@ def crawl_forward(i, note_pitch, spine, lines):
   looking for a string of pitch matches to note_pitch, and adding []
   and ] until the string ends. """
   j = i
+  prev_note = j
   while True:
     if j + 1 < len(lines) \
-      and note_in_spine(note_pitch, lines[j+1].split("\t")[spine]):
+      and (note_in_spine(note_pitch, lines[j+1].split("\t")[spine])
+      or lines[j+1].split("\t")[spine].strip() == "."):
+      if lines[j+1].split("\t")[spine].strip() == ".":
+        j += 1
+        continue
+      prev_note = j+1
       next_line = lines[j+1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(next_line, note_pitch)
       next_line_notes = next_line.split(" ")
@@ -181,6 +187,7 @@ def crawl_forward(i, note_pitch, spine, lines):
                     if spine == 1 else \
                       " ".join(next_line_notes) +"\t"+ lines[j+1].split("\t")[1]
     else:
+      j = prev_note
       curr_line = lines[j].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(curr_line, note_pitch, start_char="[")
       curr_line_notes = curr_line.split(" ")
@@ -198,8 +205,14 @@ def crawl_backward(i, note_pitch, spine, lines):
   Adds [] and [ to extend the tie backwards to matching notes, until
   the string of pitch matches is broken."""
   j = i
+  prev_note = j
   while True:
-    if j-1 >= 0 and note_in_spine(note_pitch, lines[j-1].split("\t")[spine]):
+    if j-1 >= 0 and (note_in_spine(note_pitch, lines[j-1].split("\t")[spine])
+    or lines[j-1].split("\t")[spine].strip() == "."):
+      if lines[j-1].split("\t")[spine].strip() == ".":
+        j -= 1
+        continue
+      prev_note = j-1
       prev_line = lines[j-1].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(prev_line, note_pitch)
       prev_line_notes = prev_line.split(" ")
@@ -211,6 +224,7 @@ def crawl_backward(i, note_pitch, spine, lines):
                     if spine == 1 else \
                       " ".join(prev_line_notes) +"\t"+ lines[j-1].split("\t")[1]
     else:
+      j = prev_note
       curr_line = lines[j].split("\t")[spine].strip()
       pitch_ind = get_index_of_pitch(curr_line, note_pitch, end_char="]")
       curr_line_notes = curr_line.split(" ")
@@ -231,6 +245,8 @@ def fix_ties_for_spine(spine, lines, i):
   Spine must be 1 or 0.
   """
   line = lines[i]
+  if line.split("\t")[spine].strip() == "[2cc [2a [2f":
+    test = 1
   for note in line.split("\t")[spine].split(" "):
     if "[" in note and "]" not in note:
       note_pitch = get_note_pitch(note)
