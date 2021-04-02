@@ -145,6 +145,13 @@ def tests():
         print(line)
         print(prob)
 
+def write_music(formatted):
+    dir = 'generated_music'
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
+        file.write(new_music_formatted)
+
 
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
@@ -153,10 +160,5 @@ if __name__ == "__main__":
     
     new_music = generate_random(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
-    # print(new_music)
-    dir = 'generated_music'
-    if not os.path.exists(dir):
-        os.mkdir(dir)
-    with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
-        file.write(new_music_formatted)
+    write_music(new_music_formatted)
     # view online at http://verovio.humdrum.org/
