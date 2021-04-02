@@ -3,6 +3,7 @@ raw*/
 processed*/
 music*/
 log_*.txt
+generated*/
 
 # other
 .DS_Store
