@@ -111,7 +111,13 @@ def fix_rhythm(kern_string):
     if line.strip() == "":
       continue
 
-    l_note, r_note = line.split("\t")
+    try:
+      l_note, r_note = line.split("\t")
+    except:
+      # l_note, r_note = line, "."
+      continue
+      # print("error with decoding: " + line)
+      # return
     l_note, r_note = l_note.strip(), r_note.strip()
     if l_note == "." and r_note == ".":
       continue
@@ -303,5 +309,5 @@ if __name__ == "__main__":
 
   with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 16 in G major") as f:
     good_kern = convert_to_good_kern(f.read())
-    with open("./test.txt", "w") as fw:
-      fw.write(good_kern)
+  with open("./test.txt", "w") as fw:
+    fw.write(good_kern)
