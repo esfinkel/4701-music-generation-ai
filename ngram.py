@@ -116,12 +116,15 @@ def generate_music(start, model, has_max=True, max_notes=200):
             toks.append(tok)
             probs.append(prob)
             # probs.append(prob**2)
-        next = random.choices(toks, weights=probs, k=1)[0]
+        next = random.choices(toks[:5000], weights=probs[:5000])[0]
+        # next = random.choices(toks, weights=probs)[0]
+        # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
         music.append(next.strip())
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
             break
-    print("stop symbol seen")
+    if music[-1] == "</s>":
+        print("stop symbol seen")
     return "\n".join(music[2:-1]) + "\n"
 
 
@@ -145,7 +148,8 @@ def tests():
 
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
+    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
+    lm = LMModel(counts_un, counts_bi, counts_tri, 0.4, 0.35, 0.25, 0.1)
     
     new_music = generate_random(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
