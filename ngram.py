@@ -73,12 +73,12 @@ def log_prob_of_file(filepath, model):
     number of tokens in the file. """
     # vocab = set(counts_un.keys())
     tot = 0
-    count = 0
+    count = 4
     prev_prev = "<s>\n"
     prev = "<s>\n"
     with open(filepath) as f:
         for line in f:
-            count += 2
+            count += 1
             line = line.strip()+"\n"
             tri_prob = model.get_trigram_prob(prev_prev, prev, line)
             tot += math.log(tri_prob)
@@ -118,9 +118,11 @@ def avg_perplexity(dir_path, model):
 
 def generate_music(start, model, has_max=True, max_notes=200):
     """generates and returns new music starting with `start` (which
-    does not contain any start token) """
+    does not contain any start token). If `start` is empty, then it's
+    ignored. """
     music = ["<s>", "<s>"]
-    music.extend(start.split("\n"))
+    if start is not None and start != "":
+        music.extend(start.split("\n"))
     while music[-1] != "</s>":
         prob_dictionary = prob_dist(music[-2]+"\n", music[-1]+"\n", model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
@@ -135,6 +137,7 @@ def generate_music(start, model, has_max=True, max_notes=200):
         music.append(next.strip())
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
+            music.append("</s>")
             break
     if music[-1] == "</s>":
         print("stop symbol seen")
