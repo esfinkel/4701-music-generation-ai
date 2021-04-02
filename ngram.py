@@ -51,49 +51,22 @@ def gather_counts(directory):
     counts_un = defaultdict(int)
     counts_bi = defaultdict(int)
     counts_tri = defaultdict(int)
-    prev_prev = "<s>"
-    prev = "<s>"
     for filename in os.listdir(f"./{directory}"):
         if ".DS_Store" in filename:
             continue
         with open(f"./{directory}/{filename}", "r") as f:
-            for line in f:
-                line = line.strip()
-                if len(line) == 0:
-                    continue
-                counts_un[line+"\n"] += 1
-                counts_bi[prev+"\n"+line+"\n"] += 1
-                counts_tri[prev_prev+"\n"+prev+"\n"+line+"\n"] += 1
-                prev_prev = prev
-                prev = line
-            counts_un["</s>\n"] += 2
-            counts_bi["</s>\n</s>\n"] += 1
-            counts_bi[prev+"\n"+"</s>\n"] += 1
-            counts_tri[prev_prev+"\n"+prev+"\n" + "</s>\n"] += 1
-            counts_tri[prev+"\n</s>\n</s>\n"] += 1
+            filetext = f.readlines()
+        filetext = ["<s>\n"]*2 + filetext + ["</s>\n"]*2
+        filetext = list(filter(lambda t: t.strip() != "", filetext))
+        for i in range(len(filetext)-2):
+            a, b, c = filetext[i].strip()+"\n", filetext[i+1].strip()+"\n", filetext[i+2].strip()+"\n"
+            counts_un[a] += 1
+            counts_bi[a+b] += 1
+            counts_tri[a+b+c] += 1
+        counts_un["</s>\n"] += 2
+        counts_bi["</s>\n</s>\n"] += 1
     return counts_un, counts_bi, counts_tri
 
-def gather_penta_counts(directory):
-    counts = defaultdict(int)
-    for filename in os.listdir(f"./{directory}"):
-        if ".DS_Store" in filename:
-            continue
-        with open(f"./{directory}/{filename}", "r") as f:
-            text = f.readlines()
-        for i in range(len(text)-4):
-            vals = [text[i], text[i+1], text[i+2], text[i+3], text[i+4]]
-            vals = [v.strip() for v in vals]
-            counts["\n".join(vals)] += 1
-    return counts
-
-
-def test_penta():
-    c = gather_penta_counts("music_in_C_training")
-    cc = [(c, t) for t, c in c.items()]
-    m = ""
-    for c, t in sorted(cc, reverse=True)[:20]:
-        m += t + "\n"
-    print(fix_kern.convert_to_good_kern(m))
 
 def log_prob_of_file(filepath, model):
     """Outputs the log probability of the music in file. Also outputs the 
