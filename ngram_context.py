@@ -7,65 +7,77 @@ import time
 import fix_kern
 
 class LMModel():
-    def __init__(self, counts_un, counts_bi, counts_tri, l1, l2, l3, k):
-        self.un = counts_un
-        self.num_tokens = sum(counts_un.values())
-        self.bi = counts_bi
+    def __init__(self, vocab, counts_bi, counts_tri, counts_4, counts_5, l3, l4, l5, k):
         self.tri = counts_tri
-        self.l1 = l1
-        self.l2 = l2 
+        self.four = counts_4
+        self.five = counts_5
+        self.bi = counts_bi
+        self.l5 = l5
+        self.l4 = l4
         self.l3 = l3 
         self.k = k
-        self.vocab = set(counts_un.keys())
+        self.vocab = vocab
 
     def get_count(self, count_dict, line):
         return float(count_dict.get(line, 0))
 
-    def get_trigram_prob(self, line1, line2, line3):
+    def get_5gram_prob(self, line1, line2, line3, line4, line5):
         """Returns the probability of trigram line1=line2+line3,
         using linear interpolation with add-k smoothing """
-        tri_prob = (self.l3 * 
-                      ((self.get_count(self.tri,line1+line2+line3) + self.k) / 
-                          (self.get_count(self.bi, line1+line2) 
+        five_prob = (self.l5 * 
+                      ((self.get_count(self.five,line1+line2+line3+line4+line5) 
+                        + self.k) / 
+                          (self.get_count(self.four, line1+line2+line3+line4) 
                               + len(self.vocab)*self.k)) )
-        bi_prob = self.l2 * ((self.get_count(self.bi,line2+line3) + self.k) / 
-                        (self.get_count(self.un, line2) + len(self.vocab)*self.k))
-        un_prob = self.l1 * ((self.get_count(self.un,line3)+self.k) / 
-                        (self.num_tokens * (1 + self.k)))
-        return tri_prob + bi_prob + un_prob
+        four_prob = self.l4 * ((self.get_count(self.four,
+                                line2+line3+line4+line5) + self.k) / 
+                        (self.get_count(self.tri, line2+line3+line4) + len(self.vocab)*self.k))
+        tri_prob = self.l3 * ((self.get_count(self.tri,line3+line4+line5)
+                        +self.k) / 
+                        (self.get_count(self.bi, line3+line4) + len(self.vocab)*self.k))
+        return tri_prob + four_prob + five_prob
 
-def prob_dist(line1, line2, model):
+def prob_dist(line1, line2, line3, line4, model):
     """Returns a dictionary mapping each possible completion of the trigram
     beginning with line1+line2 to the probability of that trigram, using
     linear interpolation with add-k smoothing. """
-    vocab = mode.vocab
+    vocab = model.vocab
     probs = dict()
-    for line3 in vocab:
-        probs[line3] = model.get_trigram_prob(line1, line2, line3)
+    for line5 in vocab:
+        probs[line5] = model.get_5gram_prob(line1, line2, line3, line4, line5)
     return probs
 
 def gather_counts(directory):
     """Finds unigram, bigram, and trigram counts for all **kern files in 
     `directory`. prepends two <s> lines to the beginning of every file
     and appends two </s> lines to every file. """
-    counts_un = defaultdict(int)
+    vocab = set()
     counts_bi = defaultdict(int)
     counts_tri = defaultdict(int)
+    counts_4 = defaultdict(int)
+    counts_5 = defaultdict(int)
     for filename in os.listdir(f"./{directory}"):
         if ".DS_Store" in filename:
             continue
         with open(f"./{directory}/{filename}", "r") as f:
             filetext = f.readlines()
-        filetext = ["<s>\n"]*2 + filetext + ["</s>\n"]*2
+        filetext = ["<s>\n"]*4 + filetext + ["</s>\n"]*4
         filetext = list(filter(lambda t: t.strip() != "", filetext))
-        for i in range(len(filetext)-2):
-            a, b, c = filetext[i].strip()+"\n", filetext[i+1].strip()+"\n", filetext[i+2].strip()+"\n"
-            counts_un[a] += 1
-            counts_bi[a+b] += 1
-            counts_tri[a+b+c] += 1
-        counts_un["</s>\n"] += 2
+        for i in range(len(filetext)-4):
+            a, b, c, d, e = (filetext[i].strip()+"\n", 
+                            filetext[i+1].strip()+"\n", 
+                            filetext[i+2].strip()+"\n", 
+                            filetext[i+3].strip()+"\n", 
+                            filetext[i+4].strip()+"\n")
+            counts_5[a+b+c+d+e] += 1
+            counts_4[b+c+d+e] += 1
+            counts_tri[c+d+e] += 1
+            counts_bi[d+e] += 1
+            vocab.add(e)
         counts_bi["</s>\n</s>\n"] += 1
-    return counts_un, counts_bi, counts_tri
+        counts_tri["</s>\n</s>\n</s>"] += 1
+        counts_4["</s>\n</s>\n</s>\n</s>\n"] += 1
+    return vocab, counts_bi, counts_tri, counts_4, counts_5
 
 
 def log_prob_of_file(filepath, model):
@@ -73,22 +85,28 @@ def log_prob_of_file(filepath, model):
     number of tokens in the file. """
     # vocab = set(counts_un.keys())
     tot = 0
-    count = 4
-    prev_prev = "<s>\n"
+    count = 8
+    prev_4 = "<s>\n"
+    prev_3 = "<s>\n"
+    prev_2 = "<s>\n"
     prev = "<s>\n"
     with open(filepath) as f:
         for line in f:
             count += 1
             line = line.strip()+"\n"
-            tri_prob = model.get_trigram_prob(prev_prev, prev, line)
-            tot += math.log(tri_prob)
-            prev_prev = prev
-            prev = line 
-    for line in ["</s>\n", "</s>\n"]:
-        tri_prob = model.get_trigram_prob(prev_prev, prev, line)
-        tot += math.log(tri_prob)
-        prev_prev = prev
-        prev = line 
+            five_prob = model.get_5gram_prob(prev_4, prev_3, prev_2, prev, line)
+            tot += math.log(five_prob)
+            prev_4 = prev_3
+            prev_3 = prev_2
+            prev_2 = prev
+            prev = line
+    for line in ["</s>\n", "</s>\n", "</s>\n", "</s>\n"]:
+        five_prob = model.get_5gram_prob(prev_4, prev_3, prev_2, prev, line)
+        tot += math.log(five_prob)
+        prev_4 = prev_3
+        prev_3 = prev_2
+        prev_2 = prev
+        prev = line
     return tot, count
 
 def perplexity(filepath, model):
@@ -120,11 +138,11 @@ def generate_music(start, model, has_max=True, max_notes=200):
     """generates and returns new music starting with `start` (which
     does not contain any start token). If `start` is empty, then it's
     ignored. """
-    music = ["<s>", "<s>"]
+    music = ["<s>", "<s>", "<s>", "<s>"]
     if start is not None and start != "":
         music.extend(start.split("\n"))
     while music[-1] != "</s>":
-        prob_dictionary = prob_dist(music[-2]+"\n", music[-1]+"\n", model)
+        prob_dictionary = prob_dist(music[-4]+"\n", music[-3]+"\n", music[-2]+"\n", music[-1]+"\n", model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
         for prob, tok in sorted_dict:
@@ -185,9 +203,9 @@ def perplexity_expt(dir, un, bi, tri):
 
 
 if __name__ == "__main__":
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
+    vocab, counts_bi, counts_tri, counts_4, counts_5 = gather_counts("music_in_C_training")
     # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.01)
+    lm = LMModel(vocab, counts_bi, counts_tri, counts_4, counts_5, 0.1, 0.2, 0.7, 0.01)
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
     new_music = generate_random(lm)
