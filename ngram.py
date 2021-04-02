@@ -9,6 +9,7 @@ import fix_kern
 class LMModel():
     def __init__(self, counts_un, counts_bi, counts_tri, l1, l2, l3, k):
         self.un = counts_un
+        self.num_tokens = sum(counts_un.values())
         self.bi = counts_bi
         self.tri = counts_tri
         self.l1 = l1
@@ -18,9 +19,7 @@ class LMModel():
         self.vocab = set(counts_un.keys())
 
     def get_count(self, count_dict, line):
-        if line in count_dict:
-            return float(count_dict[line])
-        return 0.0
+        return float(count_dict.get(line, 0))
 
     def get_trigram_prob(self, line1, line2, line3):
         """Returns the probability of trigram line1=line2+line3,
@@ -32,7 +31,7 @@ class LMModel():
         bi_prob = self.l2 * ((self.get_count(self.bi,line2+line3) + self.k) / 
                         (self.get_count(self.un, line1) + len(self.vocab)*self.k))
         un_prob = self.l3 * ((self.get_count(self.un,line3)+self.k) / 
-                        (len(self.vocab) + self.k*len(self.vocab)))
+                        (self.num_tokens * (1 + self.k)))
         return tri_prob + bi_prob + un_prob
 
 def prob_dist(line1, line2, model):
@@ -111,16 +110,9 @@ def generate_music(start, model, has_max=True, max_notes=200):
     music.extend(start.split("\n"))
     while music[-1] != "</s>":
         prob_dictionary = prob_dist(music[-2]+"\n", music[-1]+"\n", model)
-        if len(prob_dictionary) == 0:
-            # may not be necessary, since I didn't get errors without 
-            # it, but just to be safe...
-            print("chop 1")
-            prob_dictionary = prob_dist("<s>\n", music[-1]+"\n", model)
-        if len(prob_dictionary) == 0:
-            print("chop 2")
-            prob_dictionary = prob_dist("<s>\n", "<s>\n", model)
+        sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
-        for tok, prob in prob_dictionary.items():
+        for prob, tok in sorted_dict:
             toks.append(tok)
             probs.append(prob)
             # probs.append(prob**2)
