@@ -1,6 +1,10 @@
 import os
 from collections import defaultdict
 import math 
+import random
+import time
+
+import fix_kern
 
 class LMModel():
     def __init__(self, counts_un, counts_bi, counts_tri, l1, l2, l3, k):
@@ -74,7 +78,7 @@ def gather_counts(directory):
 def log_prob_of_file(filepath, model):
     """Outputs the log probability of the music in file. Also outputs the 
     number of tokens in the file. """
-    vocab = set(counts_un.keys())
+    # vocab = set(counts_un.keys())
     tot = 0
     count = 0
     prev_prev = "<s>\n"
@@ -100,8 +104,41 @@ def perplexity(filepath, model):
     perplexity = math.exp((-1.0/count) * log_prob)
     return perplexity
 
-if __name__ == "__main__":
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C")
+def generate_music(start, model, has_max=True, max_notes=200):
+    """generates and writes new music starting with `start` (which
+    does not contain any start token) """
+    music = ["<s>", "<s>"]
+    music.extend(start.split("\n"))
+    while music[-1] != "</s>":
+        prob_dictionary = prob_dist(music[-2]+"\n", music[-1]+"\n", model)
+        if len(prob_dictionary) == 0:
+            # may not be necessary, since I didn't get errors without 
+            # it, but just to be safe...
+            print("chop 1")
+            prob_dictionary = prob_dist("<s>\n", music[-1]+"\n", model)
+        if len(prob_dictionary) == 0:
+            print("chop 2")
+            prob_dictionary = prob_dist("<s>\n", "<s>\n", model)
+        toks, probs = [], []
+        for tok, prob in prob_dictionary.items():
+            toks.append(tok)
+            probs.append(prob)
+            # probs.append(prob**2)
+        next = random.choices(toks, weights=probs, k=1)[0]
+        music.append(next.strip())
+        if has_max and len(music) > max_notes:
+            print(f"terminated after {max_notes} notes")
+            break
+    print("stop symbol seen")
+    return "\n".join(music[2:-1]) + "\n"
+
+
+def generate_random(model):
+    """generates and writes new music"""
+    return generate_music("", model)
+
+def tests():
+    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
     lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
     print(perplexity("./music_in_C/Beethoven, Ludwig van___Piano Sonata No. 19 in G minor", lm))
 
@@ -112,13 +149,18 @@ if __name__ == "__main__":
     for line, prob in probs[:5]:
         print(line)
         print(prob)
-    # then, we can easily generate music by using pythons random.choices
-    # function, which lets you input a probability distribution
-    # over some choices, and selects a value based on that 
-    # random_number = random.choices(a_list, distribution)
-    # distribution weights don't have to add up to 1. 
 
 
-      
-
-        
+if __name__ == "__main__":
+    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
+    lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
+    
+    new_music = generate_random(lm)
+    new_music_formatted = fix_kern.convert_to_good_kern(new_music)
+    # print(new_music)
+    dir = 'generated_music'
+    if not os.path.exists(dir):
+        os.mkdir(dir)
+    with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
+        file.write(new_music_formatted)
+    # view online at http://verovio.humdrum.org/
