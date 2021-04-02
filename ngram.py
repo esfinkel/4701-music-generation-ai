@@ -104,7 +104,7 @@ def perplexity(filepath, model):
     return perplexity
 
 def generate_music(start, model, has_max=True, max_notes=200):
-    """generates and writes new music starting with `start` (which
+    """generates and returns new music starting with `start` (which
     does not contain any start token) """
     music = ["<s>", "<s>"]
     music.extend(start.split("\n"))
@@ -129,7 +129,7 @@ def generate_music(start, model, has_max=True, max_notes=200):
 
 
 def generate_random(model):
-    """generates and writes new music"""
+    """generates and returns new music"""
     return generate_music("", model)
 
 def tests():
@@ -146,6 +146,7 @@ def tests():
         print(prob)
 
 def write_music(formatted):
+    """Given well-formatted kern music, write file"""
     dir = 'generated_music'
     if not os.path.exists(dir):
         os.mkdir(dir)
@@ -158,7 +159,9 @@ if __name__ == "__main__":
     # lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
     lm = LMModel(counts_un, counts_bi, counts_tri, 0.4, 0.35, 0.25, 0.1)
     
+    # generate music
     new_music = generate_random(lm)
+    # format and write
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
     write_music(new_music_formatted)
     # view online at http://verovio.humdrum.org/
