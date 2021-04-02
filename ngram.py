@@ -97,6 +97,25 @@ def perplexity(filepath, model):
     perplexity = math.exp((-1.0/count) * log_prob)
     return perplexity
 
+
+def avg_perplexity(dir_path, model):
+    """returns the avg perplexity over all the pieces (not normalized)"""
+    ps = []
+    for filename in os.listdir(f"./{dir_path}"):
+        path = f"./{dir_path}/{filename}"
+        if ".DS" in path:
+            continue
+        with open(path) as f:
+            if f.read().strip() == "":
+                continue
+        # try:
+        ps.append(perplexity(path, model))
+        # except:
+        #     print("error w perplex of "+path)
+    
+    return sum(ps)/len(ps)
+
+
 def generate_music(start, model, has_max=True, max_notes=200):
     """generates and returns new music starting with `start` (which
     does not contain any start token) """
@@ -108,8 +127,8 @@ def generate_music(start, model, has_max=True, max_notes=200):
         toks, probs = [], []
         for prob, tok in sorted_dict:
             toks.append(tok)
-            probs.append(prob)
-            # probs.append(prob**2)
+            # probs.append(prob)
+            probs.append(2**prob)
         next = random.choices(toks[:5000], weights=probs[:5000])[0]
         # next = random.choices(toks, weights=probs)[0]
         # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
@@ -148,9 +167,24 @@ def write_music(formatted):
         file.write(formatted)
 
 
+def perplexity_expt(dir, un, bi, tri):
+    results = []
+    for l1 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+        for l2 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+            l3 = 1 - l1 - l2
+            if l3 < 0 or l3 > 1:
+                continue
+            lm = LMModel(counts_un, counts_bi, counts_tri, l1, l2, l3, k=0.1)
+            results.append((avg_perplexity(dir, lm), l1, l2, l3))
+    return sorted(results, reverse=False)
+
+
+
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
+    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
+    lm = LMModel(counts_un, counts_bi, counts_tri, 0.2, 0.2, 0.6, k=0.01)
+    # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
     new_music = generate_random(lm)
     # format and write
