@@ -24,13 +24,13 @@ class LMModel():
     def get_trigram_prob(self, line1, line2, line3):
         """Returns the probability of trigram line1=line2+line3,
         using linear interpolation with add-k smoothing """
-        tri_prob = (self.l1 * 
+        tri_prob = (self.l3 * 
                       ((self.get_count(self.tri,line1+line2+line3) + self.k) / 
                           (self.get_count(self.bi, line1+line2) 
                               + len(self.vocab)*self.k)) )
         bi_prob = self.l2 * ((self.get_count(self.bi,line2+line3) + self.k) / 
                         (self.get_count(self.un, line1) + len(self.vocab)*self.k))
-        un_prob = self.l3 * ((self.get_count(self.un,line3)+self.k) / 
+        un_prob = self.l1 * ((self.get_count(self.un,line3)+self.k) / 
                         (self.num_tokens * (1 + self.k)))
         return tri_prob + bi_prob + un_prob
 
@@ -73,6 +73,27 @@ def gather_counts(directory):
             counts_tri[prev+"\n</s>\n</s>\n"] += 1
     return counts_un, counts_bi, counts_tri
 
+def gather_penta_counts(directory):
+    counts = defaultdict(int)
+    for filename in os.listdir(f"./{directory}"):
+        if ".DS_Store" in filename:
+            continue
+        with open(f"./{directory}/{filename}", "r") as f:
+            text = f.readlines()
+        for i in range(len(text)-4):
+            vals = [text[i], text[i+1], text[i+2], text[i+3], text[i+4]]
+            vals = [v.strip() for v in vals]
+            counts["\n".join(vals)] += 1
+    return counts
+
+
+def test_penta():
+    c = gather_penta_counts("music_in_C_training")
+    cc = [(c, t) for t, c in c.items()]
+    m = ""
+    for c, t in sorted(cc, reverse=True)[:20]:
+        m += t + "\n"
+    print(fix_kern.convert_to_good_kern(m))
 
 def log_prob_of_file(filepath, model):
     """Outputs the log probability of the music in file. Also outputs the 
@@ -151,14 +172,12 @@ def write_music(formatted):
     if not os.path.exists(dir):
         os.mkdir(dir)
     with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
-        file.write(new_music_formatted)
+        file.write(formatted)
 
 
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.4, 0.35, 0.25, 0.1)
-    
+    lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
     # generate music
     new_music = generate_random(lm)
     # format and write
