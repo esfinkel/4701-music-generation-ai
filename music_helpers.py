@@ -154,9 +154,9 @@ def convert_to_duration(note):
   return duration
 
 def convert_to_dur_frac(note):
-  """Given a **kern note, returns the duration of this note, as a fraction. 
-  Example: 4r -> 1/4
-  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 7/8
+  """Given a **kern note, returns the duration of this note, as a fraction. \n
+  Example: 4r -> 1/4 \n
+  Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 7/8 \n
   `.` has duration 0."""
   number=""
   dots = 0
