@@ -137,10 +137,11 @@ def generate_music(start, model, has_max=True, max_notes=200):
         music.append(next.strip())
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
-            music.append("</s>")
             break
     if music[-1] == "</s>":
         print("stop symbol seen")
+    else:
+        music.append("</s>")
     return "\n".join(music[2:-1]) + "\n"
 
 
@@ -186,7 +187,7 @@ def perplexity_expt(dir, un, bi, tri):
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
     # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.2, 0.2, 0.6, k=0.01)
+    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.01)
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
     new_music = generate_random(lm)
