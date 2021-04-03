@@ -38,7 +38,7 @@ def prob_dist(line1, line2, model):
     """Returns a dictionary mapping each possible completion of the trigram
     beginning with line1+line2 to the probability of that trigram, using
     linear interpolation with add-k smoothing. """
-    vocab = mode.vocab
+    vocab = model.vocab
     probs = dict()
     for line3 in vocab:
         probs[line3] = model.get_trigram_prob(line1, line2, line3)
@@ -56,12 +56,12 @@ def gather_counts(directory):
             continue
         with open(f"./{directory}/{filename}", "r") as f:
             filetext = f.readlines()
-        filetext = ["<s>\n"]*2 + filetext + ["</s>\n"]*2
+        filetext = ["<s>"]*2 + filetext + ["</s>"]*2
         filetext = list(filter(lambda t: t.strip() != "", filetext))
         for i in range(len(filetext)-2):
             a, b, c = filetext[i].strip()+"\n", filetext[i+1].strip()+"\n", filetext[i+2].strip()+"\n"
-            counts_un[a] += 1
-            counts_bi[a+b] += 1
+            counts_un[c] += 1
+            counts_bi[b+c] += 1
             counts_tri[a+b+c] += 1
         counts_un["</s>\n"] += 2
         counts_bi["</s>\n</s>\n"] += 1
@@ -120,11 +120,11 @@ def generate_music(start, model, has_max=True, max_notes=200):
     """generates and returns new music starting with `start` (which
     does not contain any start token). If `start` is empty, then it's
     ignored. """
-    music = ["<s>", "<s>"]
+    music = ["<s>\n", "<s>\n"]
     if start is not None and start != "":
         music.extend(start.split("\n"))
     while music[-1] != "</s>":
-        prob_dictionary = prob_dist(music[-2]+"\n", music[-1]+"\n", model)
+        prob_dictionary = prob_dist(music[-2], music[-1], model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
         for prob, tok in sorted_dict:
@@ -138,10 +138,10 @@ def generate_music(start, model, has_max=True, max_notes=200):
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
             break
-    if music[-1] == "</s>":
+    if music[-1] == "</s>\n":
         print("stop symbol seen")
     else:
-        music.append("</s>")
+        music.append("</s>\n")
     return "\n".join(music[2:-1]) + "\n"
 
 
