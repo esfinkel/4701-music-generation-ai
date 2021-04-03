@@ -123,7 +123,7 @@ def generate_music(start, model, has_max=True, max_notes=200):
     music = ["<s>\n", "<s>\n"]
     if start is not None and start != "":
         music.extend(start.split("\n"))
-    while music[-1] != "</s>":
+    while music[-1] != "</s>\n":
         prob_dictionary = prob_dist(music[-2], music[-1], model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
@@ -134,7 +134,7 @@ def generate_music(start, model, has_max=True, max_notes=200):
         next = random.choices(toks[:5000], weights=probs[:5000])[0]
         # next = random.choices(toks, weights=probs)[0]
         # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
-        music.append(next.strip())
+        music.append(next.strip()+"\n")
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
             break
