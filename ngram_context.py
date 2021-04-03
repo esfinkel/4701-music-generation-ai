@@ -147,12 +147,13 @@ def generate_music(start, model, has_max=True, max_notes=200):
         toks, probs = [], []
         for prob, tok in sorted_dict:
             toks.append(tok)
-            # probs.append(prob)
-            probs.append(2**prob)
+            probs.append(prob)
+            # probs.append(2**prob)
         next = random.choices(toks[:5000], weights=probs[:5000])[0]
         # next = random.choices(toks, weights=probs)[0]
         # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
         music.append(next.strip())
+        print(next.strip())
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
             break
@@ -189,21 +190,9 @@ def write_music(formatted):
         file.write(formatted)
 
 
-def perplexity_expt(dir, un, bi, tri):
-    results = []
-    for l1 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-        for l2 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-            l3 = 1 - l1 - l2
-            if l3 < 0 or l3 > 1:
-                continue
-            lm = LMModel(counts_un, counts_bi, counts_tri, l1, l2, l3, k=0.1)
-            results.append((avg_perplexity(dir, lm), l1, l2, l3))
-    return sorted(results, reverse=False)
-
-
 
 if __name__ == "__main__":
-    vocab, counts_bi, counts_tri, counts_4, counts_5 = gather_counts("music_in_C_training")
+    vocab, counts_bi, counts_tri, counts_4, counts_5 = gather_counts("Mozart")
     # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
     lm = LMModel(vocab, counts_bi, counts_tri, counts_4, counts_5, 0.1, 0.2, 0.7, 0.01)
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))

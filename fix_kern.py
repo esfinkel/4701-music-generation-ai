@@ -176,9 +176,11 @@ def crawl_forward(i, note_pitch, spine, lines):
   prev_note = j
   while True:
     if j + 1 < len(lines) \
-      and (note_in_spine(note_pitch, lines[j+1].split("\t")[spine])
+      and (len(lines[j+1].split("\t")) < 2
+      or note_in_spine(note_pitch, lines[j+1].split("\t")[spine])
       or lines[j+1].split("\t")[spine].strip() == "."):
-      if lines[j+1].split("\t")[spine].strip() == ".":
+      if lines[j+1].split("\t")[spine].strip() == "."\
+        or len(lines[j+1].split("\t")) < 2:
         j += 1
         continue
       prev_note = j+1
@@ -213,9 +215,11 @@ def crawl_backward(i, note_pitch, spine, lines):
   j = i
   prev_note = j
   while True:
-    if j-1 >= 0 and (note_in_spine(note_pitch, lines[j-1].split("\t")[spine])
+    if j-1 >= 0 and (len(lines[j-1].split("\t")) < 2
+    or note_in_spine(note_pitch, lines[j-1].split("\t")[spine])
     or lines[j-1].split("\t")[spine].strip() == "."):
-      if lines[j-1].split("\t")[spine].strip() == ".":
+      if lines[j-1].split("\t")[spine].strip() == "."\
+        or len(lines[j-1].split("\t")) < 2:
         j -= 1
         continue
       prev_note = j-1
