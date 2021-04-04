@@ -60,8 +60,7 @@ def get_next_beat(lines, i):
         r_dur += convert_to_duration(get_duration_of_spine(r_notes))
         l_dur += convert_to_duration(get_duration_of_spine(l_notes))
         next_line += line.strip()+"\n"
-        # if r_dur >= 0.25 or l_dur >= 0.25:
-        if r_dur%0.25<=0.01 and l_dur%0.25<=0.01:
+        if r_dur%0.25<=0.01: #and l_dur%0.25<=0.01:
             break
     return next_line, j
 
@@ -93,8 +92,6 @@ def gather_counts(directory):
         # counts_bi["</s>\n</s>\n"] += 1
     return counts_un, counts_bi, counts_tri
 
-
-
 def generate_music(model, has_max=True, max_beats=100):
     """generates and returns new music starting with `start` (which
     does not contain any start token). If `start` is empty, then it's
@@ -107,13 +104,11 @@ def generate_music(model, has_max=True, max_beats=100):
         for prob, tok in sorted_dict:
             toks.append(tok)
             probs.append(prob)
-        # print([round(i, 6) for i in probs[:10]])
-        # print(len(probs))
-        # next = random.choices(toks[:100], weights=probs[:100])[0]
-        next = random.choices(toks, weights=probs)[0]
-        # print(next, probs[toks.index(next)])
+        next = random.choices(toks[:100], weights=probs[:100])[0]
+        # next = random.choices(toks, weights=probs)[0]
         music.append(next.strip()+"\n")
-        # print(next)
+        print(next)
+        print("----------------")
         if has_max and len(music) > max_beats:
             print(f"terminated after {max_beats} beats")
             break
@@ -133,9 +128,9 @@ def write_music(formatted):
 
 
 if __name__ == "__main__":
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
+    counts_un, counts_bi, counts_tri = gather_counts("music_in_C")
 
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.1)
+    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.05, l2=0.05, l3=0.9, k=0.001)
 
     new_music = generate_music(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
