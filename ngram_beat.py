@@ -46,24 +46,23 @@ def prob_dist(line1, line2, model):
     return probs
 
 def get_next_beat(lines, i):
-  """returns a concatenation of the lines after i that form
-  1 quarter note."""
-  next_line = ""
-  r_dur = 0
-  l_dur = 0
-  j = i
-  for line in lines[i:]:
-    j += 1
-    if line.strip() == "":
-      continue
-    r_notes = line.split("\t")[1]
-    l_notes = line.split("\t")[0]
-    r_dur += convert_to_duration(get_duration_of_spine(r_notes))
-    l_dur += convert_to_duration(get_duration_of_spine(l_notes))
-    next_line += line.strip()+"\n"
-    if r_dur >= 0.25 or l_dur >= 0.25:
-      break
-  return next_line, j
+    """returns a concatenation of the lines after i that form
+    1 quarter note."""
+    next_line = ""
+    r_dur = 0
+    l_dur = 0
+    j = i
+    for line in lines[i:]:
+        j += 1
+        if line.strip() == "":
+            continue
+        l_notes, r_notes = line.split("\t")[0], line.split("\t")[1]
+        r_dur += convert_to_duration(get_duration_of_spine(r_notes))
+        l_dur += convert_to_duration(get_duration_of_spine(l_notes))
+        next_line += line.strip()+"\n"
+        if r_dur >= 0.25 or l_dur >= 0.25:
+            break
+    return next_line, j
 
 def gather_counts(directory):
     """Finds unigram, bigram, and trigram counts for all **kern files in 
