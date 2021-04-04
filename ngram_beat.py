@@ -60,7 +60,8 @@ def get_next_beat(lines, i):
         r_dur += convert_to_duration(get_duration_of_spine(r_notes))
         l_dur += convert_to_duration(get_duration_of_spine(l_notes))
         next_line += line.strip()+"\n"
-        if r_dur >= 0.25 or l_dur >= 0.25:
+        # if r_dur >= 0.25 or l_dur >= 0.25:
+        if r_dur%0.25<=0.01 and l_dur%0.25<=0.01:
             break
     return next_line, j
 
@@ -71,7 +72,6 @@ def gather_counts(directory):
     counts_un = defaultdict(int)
     counts_bi = defaultdict(int)
     counts_tri = defaultdict(int)
-    music = ["<s>\n", "<s>\n"]
     for filename in os.listdir(f"./{directory}"):
         if ".DS_Store" in filename:
             continue
@@ -79,24 +79,23 @@ def gather_counts(directory):
             filetext = f.readlines()
         filetext = list(filter(lambda t: t.strip() != "", filetext))
         i = 0
-        counts_bi["<s>\n<s>\n"] += 1
+        music = ["<s>\n", "<s>\n"]
         while i < len(filetext):
             next_line, i = get_next_beat(filetext, i)
             music.append(next_line)
-            a, b, c = music[-3], music[-2], music[-1]
+        # music += ["</s>\n"]*2
+        for i in range(len(music)-2):
+            a, b, c = music[i], music[i+1], music[i+2]
             counts_un[c] += 1
             counts_bi[b+c] += 1
             counts_tri[a+b+c] += 1
-        # counts_tri[music[-2]+music[-1]+"</s>\n"] += 1
-        # counts_tri[music[-1]+"</s>\n</s>\n"] += 1
-        # counts_bi[music[-1]+"</s>\n"] += 1
-        # counts_bi["</s>\n</s>\n"] += 1
         # counts_un["</s>\n"] += 2
+        # counts_bi["</s>\n</s>\n"] += 1
     return counts_un, counts_bi, counts_tri
 
 
 
-def generate_music(model, has_max=True, max_notes=100):
+def generate_music(model, has_max=True, max_beats=100):
     """generates and returns new music starting with `start` (which
     does not contain any start token). If `start` is empty, then it's
     ignored. """
@@ -108,11 +107,15 @@ def generate_music(model, has_max=True, max_notes=100):
         for prob, tok in sorted_dict:
             toks.append(tok)
             probs.append(prob)
-        next = random.choices(toks[:100], weights=probs[:100])[0]
+        # print([round(i, 6) for i in probs[:10]])
+        # print(len(probs))
+        # next = random.choices(toks[:100], weights=probs[:100])[0]
+        next = random.choices(toks, weights=probs)[0]
+        # print(next, probs[toks.index(next)])
         music.append(next.strip()+"\n")
-        print(next)
-        if has_max and len(music) > max_notes:
-            print(f"terminated after {max_notes} notes")
+        # print(next)
+        if has_max and len(music) > max_beats:
+            print(f"terminated after {max_beats} beats")
             break
     if music[-1] == "</s>\n":
         print("stop symbol seen")
@@ -122,7 +125,7 @@ def generate_music(model, has_max=True, max_notes=100):
 
 def write_music(formatted):
     """Given well-formatted kern music, write file"""
-    dir = 'generated_music'
+    dir = 'generated_music_LM_beats'
     if not os.path.exists(dir):
         os.mkdir(dir)
     with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
@@ -130,10 +133,11 @@ def write_music(formatted):
 
 
 if __name__ == "__main__":
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C")
+    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
 
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.01)
+    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.1)
 
     new_music = generate_music(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
     write_music(new_music_formatted)
+    # view online at http://verovio.humdrum.org/
