@@ -56,12 +56,16 @@ def get_next_beat(lines, i):
         j += 1
         if line.strip() == "":
             continue
+        if len(list(filter(lambda x : x.strip() != "", line.split("\t")))) < 2:
+            continue
         l_notes, r_notes = line.split("\t")[0], line.split("\t")[1]
         r_dur += convert_to_duration(get_duration_of_spine(r_notes))
         l_dur += convert_to_duration(get_duration_of_spine(l_notes))
         next_line += line.strip()+"\n"
-        if r_dur%0.25<=0.01: #and l_dur%0.25<=0.01:
+        if r_dur%0.25<=0.01 and l_dur%0.25<=0.01:
             break
+        if r_dur > 2 or l_dur > 2:
+            return get_next_beat(lines, i+1)
     return next_line, j
 
 def gather_counts(directory):
@@ -130,7 +134,7 @@ def write_music(formatted):
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C")
 
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.05, l2=0.05, l3=0.9, k=0.001)
+    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.1, l2=0.1, l3=0.8, k=0.001)
 
     new_music = generate_music(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
