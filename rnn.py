@@ -11,7 +11,9 @@ import pickle
 
 import time
 from tqdm import tqdm
-from data_loader import fetch_data
+
+import ngram
+import kern_to_vec
 
 unk = '<UNK>'
 
@@ -83,29 +85,21 @@ class RNN_No_FFNN(nn.Module):
 
 
 ## WORD EMBEDDINGS BEGIN 
-def load_pretrained_embedding_vectors(fname):
-	# source for the embeddings:
-	# 	https://fasttext.cc/docs/en/english-vectors.html
-	# vectors available thanks to
-	# 	T. Mikolov, E. Grave, P. Bojanowski, C. Puhrsch, A. Joulin.
-	# 	Advances in Pre-Training Distributed Word Representations
-	# 	https://arxiv.org/abs/1712.09405
-	data = {}
-	with io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore') as fin:
-		is_first = True
-		for line in tqdm(fin):
-			if is_first:
-				is_first = False 
-				continue
-			tokens = line.rstrip().split(' ')
-			data[tokens[0]] = list(map(float, tokens[1:]))
-	with open('pretrained_vectors/wiki-news-300d-1M-pickle.p', 'wb') as f:
-		pickle.dump(data, f)
-	return data
 
-def load_fastText_vectors():
-	with open('pretrained_vectors/wiki-news-300d-1M-pickle.p', 'rb') as f:
-		return pickle.load(f)
+def load_and_vectorize_data(directory):
+    # directory should be "music_in_C_training"
+    veclist = []
+    for filename in os.listdir(f"./{directory}"):
+        if ".DS_Store" in filename:
+            continue
+        with open(f"./{directory}/{filename}", "r") as f:
+            filetext = f.readlines()
+        veclist.extend(kern_to_vec.vec_list_for_song(filetext))
+    # do we do anything special for end of song?
+    return veclist
+    # possibly store vectors to disk if it takes longer to make the
+    # vectors than to retrieve them, but idk if it will
+
 
 ## WORD EMBEDDINGS END 
 
@@ -147,8 +141,10 @@ def convert_input_to_vectors_indexed(data, embed):
     return vectorized_data
 
 def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Add relevant parameters
-    print("Fetching data")
-    train_data, valid_data = fetch_data(k) # X_data is a list of pairs (document, y); y in {0,1,2,3,4}
+    print("Fetchig and vectorizing data")
+    train_data = load_and_vectorize_data("music_in_C_training")
+    valid_data = load_and_vectorize_data("music_in_C_test")
+    print("Fetched and vectorized data")
 
     # Think about the type of function that an RNN describes. To apply it, you will need to convert the text data into vector representations.
     # Further, think about where the vectors will come from. There are 3 reasonable choices:
@@ -157,14 +153,11 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
     # 3) You do the same as 2) but you train (this is called fine-tuning) the pretrained embeddings further. 
     # Option 3 will be the most time consuming, so we do not recommend starting with this
 
-    print("Fetched data")
-    print("fetching embeddings")
-    embed = load_fastText_vectors()
-    # embed = {'the' : [0]*300}
-    print("fetched embeddings, vectorizing data....")
-    train_data = convert_input_to_vectors(train_data, embed)
-    valid_data = convert_input_to_vectors_indexed(valid_data, embed)
     print("Vectorized data")
+
+    # TODO the rest
+
+    embed = {}
     if ffnn:
         model = RNN(hidden_dim, len(embed['the']), to_ffnn, hd_ffnn)
     else:
