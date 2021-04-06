@@ -41,6 +41,38 @@ def get_key(f):
                 return flat_keys[len(key.split("-")) - 1]
     raise ValueError("No **kern line specifying key.")
 
+ordering = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b']
+ordering_bass = [c.upper() for c in ordering]
+def transpose_note_standalone(old_note, tr_by):
+    """gives the next note, one half-step higher"""
+    # if note is bass and would pass middle c, switch to treble
+    if old_note in ordering_bass and ordering_bass.index(old_note)+tr_by >= 12:
+        new_note = ordering[ordering_bass.index(old_note)+tr_by-12]
+        return new_note
+    # process original note
+    was_sharp = '#' in old_note
+    was_bass = old_note[0] in ordering_bass
+    old_octave = len(old_note) - was_sharp # number of letters in note
+    old_note_type = old_note[0].lower()
+    if was_sharp:
+        old_note_type += '#'
+    # calculate new note
+    new_note_type_ind = (ordering.index(old_note_type.lower())+tr_by) % 12
+    new_note_type = (ordering_bass if was_bass else ordering)[new_note_type_ind]
+    new_note = new_note_type[0] * old_octave
+    is_sharp = '#' in new_note_type
+    if is_sharp:
+        new_note += '#'
+    if (ordering.index(old_note_type.lower())+tr_by) >= 12:
+        # note jumps to next octave; add or remove repeat letter accordingly
+        if was_bass:
+            assert len(new_note)-is_sharp >= 2
+            new_note = new_note[1:]
+        else:
+            new_note = new_note[0] + new_note
+    return new_note
+
+
 def transpose_piece_by_octaves(text: str, octaves: int):
     """Given the `text` of a **kern files, transpose the piece by `octaves`
     octaves (up or down depending on sign). Return transposed result.
