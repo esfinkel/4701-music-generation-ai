@@ -60,7 +60,7 @@ class RNN_No_FFNN(nn.Module):
         super(RNN_No_FFNN, self).__init__()
         self.h = hd_rnn 
         self.U = nn.Linear(hd_rnn, hd_rnn) 
-        self.V = nn.Linear(hd_rnn, 5) 
+        self.V = nn.Linear(hd_rnn, 5) # I forget why 5. TODO
         self.W = nn.Linear(input_dim, hd_rnn) 
         self.activation = nn.ReLU() 
         # Fill in relevant parameters
@@ -76,6 +76,7 @@ class RNN_No_FFNN(nn.Module):
         takes in list of word embedding vectors, returns predicted 
         label probability distribution as single vector 
         '''
+        tensor = torch.from_numpy(inputs).float() 
         h_prev = torch.zeros(self.h)
         h_t = 0 
         for word in inputs:
@@ -87,6 +88,18 @@ class RNN_No_FFNN(nn.Module):
 ## WORD EMBEDDINGS BEGIN 
 
 def load_and_vectorize_data(directory):
+    """Load all of the kern files from the directory; vectorize all data;
+    return vectors with gold labels.
+    In particular, this will return a list of elements (note_a, note_b). 
+    note_a and note_b are representations of sequential notes of a song
+    (the songs are all concatted together, with two zero vectors between
+    each two adjacent songs).
+    Each time slice is represented as a vector of length 600; each 100 indices 
+    represents the pitch/duration of one note. If a time slice has >6 notes,
+    some are ignored.
+    At each step, note_a will be the context, and note_b will be the 
+    gold label; the RNN will try to predict note_b from note_a.
+    """
     # directory should be "music_in_C_training"
     veclist = []
     for filename in os.listdir(f"./{directory}"):
@@ -95,55 +108,68 @@ def load_and_vectorize_data(directory):
         with open(f"./{directory}/{filename}", "r") as f:
             filetext = f.readlines()
         veclist.extend(kern_to_vec.vec_list_for_song(filetext))
-    # do we do anything special for end of song?
-    return veclist
+    veclist_with_labels = []
+    for i in range(len(veclist)-1): # for each time slice
+        # if veclist[i] is not None and sum(veclist[i])!=0:
+        if isinstance(veclist[i], np.ndarray) and sum(veclist[i])!=0:
+            veclist_with_labels.append((veclist[i], veclist[i+1]))
+    return veclist_with_labels
     # possibly store vectors to disk if it takes longer to make the
     # vectors than to retrieve them, but idk if it will
 
+def load_and_vectorize_data_indexed(directory):
+    """Same as load_and_vectorize_data, but returns a list of elements
+    (i, note_a, note_b), where i is an index into the data. """
+    veclist = load_and_vectorize_data(directory)
+    veclist_indices = []
+    for i in range(len(veclist)):
+        note_a, note_b = veclist[i]
+        veclist_indices.append((i, note_a, note_b))
+    return veclist_indices
 
 ## WORD EMBEDDINGS END 
 
 
-def convert_input_to_vectors(data, embed):
-    ''' 
-    takes in list of (doc, label), 
-    returns list of (list of word embedding vectors, label)
-    '''
-    vectorized_data = [] 
-    # tot_count = 0
-    # unk_count = 0
-    for document, y in data:
-        vec_list = []
-        for word in document:
-            word = word.strip()
-            # tot_count += 1
-            # if word not in embed:
-                # print(word)
-                # unk_count += 1
-            vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
-        vectorized_data.append((vec_list,y))
-    # print('prop unknown: {:.2f}'.format(unk_count/tot_count))
-    return vectorized_data
+# def convert_input_to_vectors(data, embed):
+#     ''' 
+#     takes in list of (doc, label), 
+#     returns list of (list of word embedding vectors, label)
+#     '''
+#     vectorized_data = [] 
+#     # tot_count = 0
+#     # unk_count = 0
+#     for document, y in data:
+#         vec_list = []
+#         for word in document:
+#             word = word.strip()
+#             # tot_count += 1
+#             # if word not in embed:
+#                 # print(word)
+#                 # unk_count += 1
+#             vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
+#         vectorized_data.append((vec_list,y))
+#     # print('prop unknown: {:.2f}'.format(unk_count/tot_count))
+#     return vectorized_data
 
-def convert_input_to_vectors_indexed(data, embed):
-    ''' 
-    takes in list of (idx, doc, label), 
-    returns list of (list of word embedding vectors, label)
-    '''
-    vectorized_data = [] 
+# def convert_input_to_vectors_indexed(data, embed):
+#     ''' 
+#     takes in list of (idx, doc, label), 
+#     returns list of (list of word embedding vectors, label)
+#     '''
+#     vectorized_data = [] 
 
-    for idx, document, y in data:
-        vec_list = []
-        for word in document:
-            word = word.strip()
-            vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
-        vectorized_data.append((idx, vec_list,y))
-    return vectorized_data
+#     for idx, document, y in data:
+#         vec_list = []
+#         for word in document:
+#             word = word.strip()
+#             vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
+#         vectorized_data.append((idx, vec_list,y))
+#     return vectorized_data
 
 def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Add relevant parameters
-    print("Fetchig and vectorizing data")
-    train_data = load_and_vectorize_data("music_in_C_training")
-    valid_data = load_and_vectorize_data("music_in_C_test")
+    print("Fetching and vectorizing data")
+    train_data = load_and_vectorize_data("music_in_C_training") # would incorporate k to get subset
+    valid_data = load_and_vectorize_data_indexed("music_in_C_test")
     print("Fetched and vectorized data")
 
     # Think about the type of function that an RNN describes. To apply it, you will need to convert the text data into vector representations.
@@ -153,23 +179,17 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
     # 3) You do the same as 2) but you train (this is called fine-tuning) the pretrained embeddings further. 
     # Option 3 will be the most time consuming, so we do not recommend starting with this
 
-    print("Vectorized data")
-
-    # TODO the rest
-
-    embed = {}
-    if ffnn:
-        model = RNN(hidden_dim, len(embed['the']), to_ffnn, hd_ffnn)
-    else:
-        model = RNN_No_FFNN(hidden_dim, len(embed['the']))
+    # if ffnn:
+    #     model = RNN(hidden_dim, len(embed['the']), to_ffnn, hd_ffnn)
+    # else:
+    model = RNN_No_FFNN(hidden_dim, len(train_data[0]))
     optimizer = optim.SGD(model.parameters(),lr=learning_rate, momentum=0.9) # This network is trained by traditional (batch) gradient descent; ignore that this says 'SGD'
-    # orig lr = 0.01, momentum = 0.9
 
     file_partial_name = [
         str(int(time.time())),
         'hidden_dim='+str(hidden_dim),
-        'to_ffnn='+str(to_ffnn),
-        'hd_ffnn='+str(hd_ffnn),
+        # 'to_ffnn='+str(to_ffnn),
+        # 'hd_ffnn='+str(hd_ffnn),
         'num_epochs='+str(num_epochs),
         'learning_rate='+str(learning_rate),
         'datasize='+str(k),
@@ -193,7 +213,7 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
         start_time = time.time()
         print("Training started for epoch {}".format(epoch + 1))
         for input_stream, gold_label in tqdm(train_data): ## list of word embed vecs, labels 
-            predicted_vector = model(input_stream)
+            predicted_vector = model(input_stream) # fix
             predicted_label = torch.argmax(predicted_vector)
             correct += int(predicted_label == gold_label)
             total += 1 
@@ -205,7 +225,7 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
         loss.backward() 
         print("Finished backpropagation, beginning optimization step")
         optimizer.step()
-    # START ADDED CODE
+        # START ADDED CODE
 
         # 1. initialize
         # 2. call forward() - new nodes created for inputs
@@ -267,6 +287,14 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
         # Consider ffnn.py; making changes to validation if you find them necessary
 
 if __name__ == "__main__":
-    # d = load_fastText_vectors()
-    # print(d['the'])
-    pass
+    hidden_dim_rnn = 600
+    hd_to_ffnn = 50 
+    hd_in_ffnn = 50 
+    number_of_epochs = 20
+    lr = 0.25
+    k = 16000 # out of 16000. validation will always be 1/10 of this
+    main(hidden_dim=hidden_dim_rnn, to_ffnn=hd_to_ffnn, 
+        hd_ffnn=hd_in_ffnn, num_epochs=number_of_epochs, learning_rate=lr, k=k,
+        ffnn=True
+    )
+
