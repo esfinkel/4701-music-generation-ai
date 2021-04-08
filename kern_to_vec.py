@@ -26,21 +26,30 @@ for i in range(88):
 for i in range(6):
     duration_to_ind_map[str(2**i)] = i + 88
 
+def zeros(hands=2):
+    return np.zeros(300*hands, dtype=np.float64) 
 
 def get_vec_for_hand(hand_notes):
     """Gets bag of notes vector for a single hand."""
-    vec = np.zeros(300)
+    # vec = np.zeros(300, dtype=np.int8)
+    vec = zeros(hands=1)
     note_pattern = r'(\d+)\.*([A-Ga-g]+#?)' # treats dotted quarters as quarters, etc
     notes = re.findall(note_pattern, hand_notes) # this is currently ignoring rests! TODO fix
     # print(f'found {len(notes)} matches')
     for i in range(len(notes)):
+        if i >= 3:
+            # print(f"note {hand_notes}: {len(notes)} notes found in hand...")
+            break
         duration, note = notes[i]
+        if note not in note_to_ind_map:
+            # note doesn't exist on piano because of upward transposition; 
+            # so transpose down
+            note = note[1:]
         note_ind = note_to_ind_map.get(note) + i*100
         duration_ind = duration_to_ind_map.get(duration, duration_to_ind_map["4"]) + i*100
                                                     # default to quarter note I guess
-        if note_ind is not None:
-            vec[note_ind] = 1 # if appears twice somehow, is still 1
-            vec[duration_ind] = 1
+        vec[note_ind] = 1 # if appears twice somehow, is still 1
+        vec[duration_ind] = 1
     return vec
 
 def test():
@@ -72,7 +81,7 @@ def convert_kern_line_to_vec(line):
     should be skipped. 
 
     Notes range from AAAA to ccccc. Some notes might be higher because of the
-    transposing up; those will be ignored.
+    transposing up; those will be transposed down.
     
     Every song starts and ends with the zero vector.  """
     if line.strip() == "" \
@@ -82,7 +91,7 @@ def convert_kern_line_to_vec(line):
     if l_notes.strip() == "." and r_notes.strip() == ".":
         return None
 
-    return get_vec_for_hand(l_notes).extend(get_vec_for_hand(r_notes))
+    return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 
 def convert_vec_to_kern(line_vec):
@@ -93,4 +102,9 @@ def convert_vec_to_kern(line_vec):
 def vec_list_for_song(lines):
     # should add zero vec to start/end of song, as mentioned in
     # `convert_kern_line_to_vec`
-    pass
+    vec_list = [zeros()]
+    for line in lines:
+        # TODO maybe normalize before appending
+        vec_list.append(convert_kern_line_to_vec(line))
+    vec_list.append(zeros())
+    return vec_list
