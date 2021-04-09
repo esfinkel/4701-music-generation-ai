@@ -189,8 +189,8 @@ def convert_duration_to_notation(duration):
   of `.`. We lose some rhythmic complexity here, for example 3.. -> 2. """
   if duration == 0:
     return "."
-  if 1.0/duration == int(1.0/duration):
-    return str(int(1.0/duration))
+  if abs(1.0/duration - round(1.0/duration)) < 0.00001:
+    return str(int(round(1.0/duration)))
   notation = ""
   ## ex: for duration 0.75, pow_2 = -1
   pow_2 = math.floor(math.log(duration, 2))

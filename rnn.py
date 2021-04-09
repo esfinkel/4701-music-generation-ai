@@ -13,7 +13,7 @@ import time
 from tqdm import tqdm
 
 import ngram
-from kern_to_vec2 import vec_list_for_song as vectorizer
+from kern_to_vec3 import vec_list_for_song as vectorizer
 
 class RNN_No_FFNN(nn.Module):
     def __init__(self, hd_rnn, input_dim): # Add relevant parameters
@@ -91,7 +91,7 @@ def load_and_vectorize_data_indexed(directory):
     return veclist_indices
 
 
-def main(hidden_dim, num_epochs, learning_rate): # Add relevant parameters
+def main(hidden_dim, num_epochs, learning_rate, existing_model=None): # Add relevant parameters
     print("Fetching and vectorizing data")
     train_data = load_and_vectorize_data("music_in_C_training") # would incorporate k to get subset
     # valid_data = load_and_vectorize_data_indexed("music_in_C_test")
@@ -106,7 +106,10 @@ def main(hidden_dim, num_epochs, learning_rate): # Add relevant parameters
     # Option 3 will be the most time consuming, so we do not recommend starting with this
 
 
-    model = RNN_No_FFNN(hidden_dim, len(train_data[0][0][0]))
+    if existing_model is None:
+        model = RNN_No_FFNN(hidden_dim, len(train_data[0][0][0]))
+    else:
+        model = existing_model
     optimizer = optim.SGD(model.parameters(),lr=learning_rate, momentum=0.9) # This network is trained by traditional (batch) gradient descent; ignore that this says 'SGD'
 
     file_partial_name = [
@@ -229,5 +232,7 @@ if __name__ == "__main__":
     hidden_dim_rnn = 200
     number_of_epochs = 20
     lr = 0.25
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr)
+    # with open('') as f:
+    #     model = torch.load(f)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=None)
 

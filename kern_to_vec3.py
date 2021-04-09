@@ -1,6 +1,7 @@
 import numpy as np
 import re
 import music_helpers
+import math
 
 import transpose_pieces
 
@@ -23,11 +24,13 @@ note_to_ind_map['r'] = 264
 ind_to_note_map = {ind : note for note, ind in note_to_ind_map.items()}
 
 def zeros(hands=2):
-    return np.zeros(267*hands, dtype=np.int16) 
+    return np.zeros(268*hands, dtype=np.int16) 
 
 def get_vec_for_hand(hand_notes):
     """Gets bag of notes vector for a single hand."""
     vec = zeros(hands=1)
+    if hand_notes == ".":
+        return vec
     notes = hand_notes.strip().split(" ")
     for i in range(len(notes)):
         if notes[i].strip() == ".":
@@ -43,6 +46,7 @@ def get_vec_for_hand(hand_notes):
         vec[note_ind] = 1 # if appears twice somehow, is still 1
         vec[note_ind + 1] = dur_n 
         vec[note_ind + 2] = dur_d
+    vec[-1] = len(notes)
     return vec
 
 def convert_kern_line_to_vec(line):
@@ -73,16 +77,24 @@ def convert_kern_line_to_vec(line):
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 def convert_hand_vec_to_kern(hand_vec):
-    if np.sum(hand_vec) == 0:
+    print(hand_vec[-1])
+    if round(hand_vec[-1]) < 0:
         return "."
+    possible_notes = []
+    for i in range(0,len(hand_vec)-1,3):
+        possible_notes.append((hand_vec[i], hand_vec[i+1], hand_vec[i+2], i))
+    possible_notes.sort(reverse=True)
     hand_notes = []
-    for i in range(0,len(hand_vec),3):
-        if round(hand_vec[i]) > 0 and round(hand_vec[i+2]) > 0 \
-                                   and round(hand_vec[i+1]) > 0:
-            note = ind_to_note_map[i]
-            duration = round(hand_vec[i+1]) /  round(hand_vec[i+2])
+    for i in range(math.ceil(hand_vec[-1])):
+        note_ind = possible_notes[i][3]
+        note = ind_to_note_map[note_ind]
+        duration_notated= None
+        if round(possible_notes[i][1]) <= 0 or round(possible_notes[i][2]) <= 0:
+            duration_notated = "4"
+        else:
+            duration = round(possible_notes[i][1]) /  round(possible_notes[i][2])
             duration_notated = music_helpers.convert_duration_to_notation(duration)
-            hand_notes.append(duration_notated + note)
+        hand_notes.append(duration_notated+note)
     hand_notes.sort(key=lambda x: music_helpers.convert_to_duration(x))
     return " ".join(hand_notes)
 
@@ -107,7 +119,8 @@ def song_from_vec_list(vecs):
     """Converts a list of vectors into a string representing a kern song."""
     song = ""
     for vec in vecs:
-        if np.sum(vec) == 0:
+        if round(vec[:len(vec)//2][-1])  < 0 \
+            and round(vec[len(vec)//2:][-1])  < 0 :
             continue
         song += convert_line_vec_to_kern(vec) + "\n"
     return song        
