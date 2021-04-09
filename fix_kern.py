@@ -1,6 +1,6 @@
 import os
 import re
-from music_helpers import convert_to_duration, convert_duration_to_notation, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine, convert_to_dur_frac, frac_add, frac_sub
+from music_helpers import convert_to_duration, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine, convert_to_dur_frac, frac_add, frac_sub
 from fractions import Fraction
 
 def n_lines_of(n, l_note, r_note):

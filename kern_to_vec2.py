@@ -73,6 +73,8 @@ def convert_kern_line_to_vec(line):
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 def convert_hand_vec_to_kern(hand_vec):
+    if np.sum(hand_vec) == 0:
+        return "."
     hand_notes = []
     for i in range(0,len(hand_vec),3):
         if hand_vec[i] != 0:
@@ -91,15 +93,33 @@ def convert_line_vec_to_kern(line_vec):
     return left_notes+"\t"+right_notes
     
 def vec_list_for_song(lines):
+    """Converts a list of kern lines into a list of vectors. """
     vec_list = [zeros()]
     for line in lines:
-        vec_list.append(convert_kern_line_to_vec(line))
+        vec = convert_kern_line_to_vec(line)
+        if vec is not None:
+            vec_list.append(vec)
     vec_list.append(zeros())
     return vec_list
 
+def song_from_vec_list(vecs):
+    """Converts a list of vectors into a string representing a kern song."""
+    song = ""
+    for vec in vecs:
+        if np.sum(vec) == 0:
+            continue
+        song += convert_line_vec_to_kern(vec) + "\n"
+    return song        
+
 def test():
-    vec = convert_kern_line_to_vec("4C 4d\t16r 2.aa 4ddddd")
-    print(convert_line_vec_to_kern(vec))
+    with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 10 in G major") as f:
+        song = f.readlines()
+    vecs = vec_list_for_song(song)
+    converted_song = song_from_vec_list(vecs)
+    with open("./test_song", "w") as f:
+        f.write(converted_song)
+    # vec = convert_kern_line_to_vec("4C 4d\t16r 2.aa 4ddddd")
+    # print(convert_line_vec_to_kern(vec))
     # res1 = get_vec_for_hand("32r 8ee 16aa") 
     # for i in range(len(res1)):
     #     if res1[i] != 0:

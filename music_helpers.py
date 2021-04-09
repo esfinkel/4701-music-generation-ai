@@ -186,10 +186,11 @@ def convert_to_dur_frac(note):
 
 def convert_duration_to_notation(duration):
   """Converts a float duration to a number followed by some number
-  of `.`, such that 
-  convert_to_duration(convert_duration_to_notation(duration)) = duration"""
+  of `.`. We lose some rhythmic complexity here, for example 3.. -> 2. """
   if duration == 0:
     return "."
+  if 1.0/duration == int(1.0/duration):
+    return str(int(1.0/duration))
   notation = ""
   ## ex: for duration 0.75, pow_2 = -1
   pow_2 = math.floor(math.log(duration, 2))
