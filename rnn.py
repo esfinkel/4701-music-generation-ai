@@ -13,60 +13,22 @@ import time
 from tqdm import tqdm
 
 import ngram
-import kern_to_vec
-
-unk = '<UNK>'
-
-# use the pytorch RNN layer
-
-class RNN(nn.Module):
-    def __init__(self, hd_rnn, input_dim, to_ffnn, hd_ffnn): # Add relevant parameters
-        super(RNN, self).__init__()
-        self.h = hd_rnn 
-        self.U = nn.Linear(hd_rnn, hd_rnn) 
-        self.V = nn.Linear(hd_rnn, to_ffnn) 
-        self.W = nn.Linear(input_dim, hd_rnn) 
-        self.activation = nn.ReLU() 
-        # Fill in relevant parameters
-        # Ensure parameters are initialized to small values, see PyTorch documentation for guidance
-        self.softmax = nn.LogSoftmax()
-        self.loss = nn.NLLLoss() 
-        ##FFNN PIECE
-        self.W1 = nn.Linear(to_ffnn, hd_ffnn) 
-        self.W2 = nn.Linear(hd_ffnn, 5) 
-
-    def compute_Loss(self, predicted_vector, gold_label):
-        return self.loss(predicted_vector, gold_label)    
-
-    def forward(self, inputs): 
-        '''
-        takes in list of word embedding vectors, returns predicted 
-        label probability distribution as single vector 
-        '''
-        h_prev = torch.zeros(self.h)
-        h_t = 0 
-        for word in inputs:
-            h_t = self.activation(self.U(h_prev) + self.W(word))
-            h_prev = h_t 
-        y = self.activation(self.V(h_t))
-        ##FINAL FFNN 
-        z1 = self.activation(self.W1(y))
-        z2 = self.W2(z1)
-        predicted_vector = self.softmax(z2)
-        return predicted_vector
+from kern_to_vec2 import vec_list_for_song as vectorizer
 
 class RNN_No_FFNN(nn.Module):
     def __init__(self, hd_rnn, input_dim): # Add relevant parameters
         super(RNN_No_FFNN, self).__init__()
         self.h = hd_rnn 
         self.U = nn.Linear(hd_rnn, hd_rnn) 
-        self.V = nn.Linear(hd_rnn, 5) # I forget why 5. TODO
+        self.V = nn.Linear(hd_rnn, input_dim) 
         self.W = nn.Linear(input_dim, hd_rnn) 
         self.activation = nn.ReLU() 
-        # Fill in relevant parameters
-        # Ensure parameters are initialized to small values, see PyTorch documentation for guidance
+
         self.softmax = nn.LogSoftmax()
-        self.loss = nn.NLLLoss() 
+        # self.loss = nn.NLLLoss()
+        self.loss = nn.L1Loss() 
+
+        self.prev_vec = torch.zeros(self.h)
 
     def compute_Loss(self, predicted_vector, gold_label):
         return self.loss(predicted_vector, gold_label)    
@@ -77,15 +39,15 @@ class RNN_No_FFNN(nn.Module):
         label probability distribution as single vector 
         '''
         tensor = torch.from_numpy(inputs).float() 
-        h_prev = torch.zeros(self.h)
-        h_t = 0 
-        for word in inputs:
-            h_t = self.activation(self.U(h_prev) + self.W(word))
-            h_prev = h_t 
-        return self.softmax(self.V(h_t))
+        h_prev = self.prev_vec #torch.zeros(self.h)
+        # h_t = 0 
+        # for word in inputs:
+        h_t = self.activation(self.U(h_prev) + self.W(tensor))
+        h_prev = h_t 
+        self.prev_vec = h_prev
+        # return self.softmax(self.V(h_t))
+        return self.V(h_t)
 
-
-## WORD EMBEDDINGS BEGIN 
 
 def load_and_vectorize_data(directory):
     """Load all of the kern files from the directory; vectorize all data;
@@ -107,13 +69,14 @@ def load_and_vectorize_data(directory):
             continue
         with open(f"./{directory}/{filename}", "r") as f:
             filetext = f.readlines()
-        veclist.extend(kern_to_vec.vec_list_for_song(filetext))
-    veclist_with_labels = []
-    for i in range(len(veclist)-1): # for each time slice
-        # if veclist[i] is not None and sum(veclist[i])!=0:
-        if isinstance(veclist[i], np.ndarray) and sum(veclist[i])!=0:
-            veclist_with_labels.append((veclist[i], veclist[i+1]))
-    return veclist_with_labels
+        file_vec = vectorizer(filetext)
+        # veclist.append(vectorizer(filetext))
+        filevec_with_labels = []
+        for i in range(len(file_vec)-1): # for each time slice
+            if isinstance(file_vec[i], np.ndarray):# and sum(veclist[i])!=0:
+                filevec_with_labels.append((file_vec[i], file_vec[i+1]))
+        veclist.append(filevec_with_labels)
+    return veclist
     # possibly store vectors to disk if it takes longer to make the
     # vectors than to retrieve them, but idk if it will
 
@@ -123,53 +86,16 @@ def load_and_vectorize_data_indexed(directory):
     veclist = load_and_vectorize_data(directory)
     veclist_indices = []
     for i in range(len(veclist)):
-        note_a, note_b = veclist[i]
-        veclist_indices.append((i, note_a, note_b))
+        song = veclist[i]
+        veclist_indices.append((i, song))
     return veclist_indices
 
-## WORD EMBEDDINGS END 
 
-
-# def convert_input_to_vectors(data, embed):
-#     ''' 
-#     takes in list of (doc, label), 
-#     returns list of (list of word embedding vectors, label)
-#     '''
-#     vectorized_data = [] 
-#     # tot_count = 0
-#     # unk_count = 0
-#     for document, y in data:
-#         vec_list = []
-#         for word in document:
-#             word = word.strip()
-#             # tot_count += 1
-#             # if word not in embed:
-#                 # print(word)
-#                 # unk_count += 1
-#             vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
-#         vectorized_data.append((vec_list,y))
-#     # print('prop unknown: {:.2f}'.format(unk_count/tot_count))
-#     return vectorized_data
-
-# def convert_input_to_vectors_indexed(data, embed):
-#     ''' 
-#     takes in list of (idx, doc, label), 
-#     returns list of (list of word embedding vectors, label)
-#     '''
-#     vectorized_data = [] 
-
-#     for idx, document, y in data:
-#         vec_list = []
-#         for word in document:
-#             word = word.strip()
-#             vec_list.append(torch.Tensor(embed.get(word, [0]*300)))
-#         vectorized_data.append((idx, vec_list,y))
-#     return vectorized_data
-
-def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Add relevant parameters
+def main(hidden_dim, num_epochs, learning_rate): # Add relevant parameters
     print("Fetching and vectorizing data")
     train_data = load_and_vectorize_data("music_in_C_training") # would incorporate k to get subset
-    valid_data = load_and_vectorize_data_indexed("music_in_C_test")
+    # valid_data = load_and_vectorize_data_indexed("music_in_C_test")
+    valid_data = load_and_vectorize_data("music_in_C_test")
     print("Fetched and vectorized data")
 
     # Think about the type of function that an RNN describes. To apply it, you will need to convert the text data into vector representations.
@@ -179,104 +105,117 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
     # 3) You do the same as 2) but you train (this is called fine-tuning) the pretrained embeddings further. 
     # Option 3 will be the most time consuming, so we do not recommend starting with this
 
-    # if ffnn:
-    #     model = RNN(hidden_dim, len(embed['the']), to_ffnn, hd_ffnn)
-    # else:
-    model = RNN_No_FFNN(hidden_dim, len(train_data[0]))
+
+    model = RNN_No_FFNN(hidden_dim, len(train_data[0][0][0]))
     optimizer = optim.SGD(model.parameters(),lr=learning_rate, momentum=0.9) # This network is trained by traditional (batch) gradient descent; ignore that this says 'SGD'
 
     file_partial_name = [
         str(int(time.time())),
         'hidden_dim='+str(hidden_dim),
-        # 'to_ffnn='+str(to_ffnn),
-        # 'hd_ffnn='+str(hd_ffnn),
         'num_epochs='+str(num_epochs),
-        'learning_rate='+str(learning_rate),
-        'datasize='+str(k),
+        'learning_rate='+str(learning_rate)
     ]
-    partial_file_name= 'rnn_data/'+'&'.join(file_partial_name)
-    max_valid_acc = 0
+    partial_file_name= 'rnn_models/'+'&'.join(file_partial_name)
+    # max_valid_acc = 0
+    min_valid_dist = None
 
 
     # while not stopping_condition(x): # How will you decide to stop training and why
     ##STOPPING CONDITION: check if validation accuracy goes down two times in a row 
     ## OR we've reached the number of epochs 
-    prev_val_accuracy = 0 
+    prev_val_dist = 0 
     has_gone_down = False 
     for epoch in range(num_epochs):
         model.train()
         optimizer.zero_grad()
 
         loss = torch.Tensor([0])
-        correct = 0
+        # correct = 0
+        tot_distance = 0
         total = 0
         start_time = time.time()
         print("Training started for epoch {}".format(epoch + 1))
-        for input_stream, gold_label in tqdm(train_data): ## list of word embed vecs, labels 
-            predicted_vector = model(input_stream) # fix
-            predicted_label = torch.argmax(predicted_vector)
-            correct += int(predicted_label == gold_label)
-            total += 1 
-            loss += model.compute_Loss(predicted_vector.view(1,-1), torch.tensor([gold_label])) 
-        loss = loss / len(train_data) 
+        for song in tqdm(train_data): ## list of word embed vecs, labels 
+            for line, gold_next_line in song:
+                predicted_next_line = model(line) 
+                # predicted_label = torch.argmax(predicted_vector)
+                # correct += int(predicted_label == gold_label)
+                total += 1 
+                tot_distance += torch.linalg.norm(predicted_next_line - torch.from_numpy(gold_next_line))
+                # loss += model.compute_Loss(predicted_next_line.view(1,-1), torch.tensor([gold_next_line])) 
+                loss += model.compute_Loss(predicted_next_line, torch.from_numpy(gold_next_line))
+            model.prev_vec = torch.zeros(model.h)
+        # loss = loss / len(train_data) 
+        loss = loss / total
         loss_float = loss.item()
         print(loss_float)
         print("Backpropagation...")
         loss.backward() 
         print("Finished backpropagation, beginning optimization step")
         optimizer.step()
-        # START ADDED CODE
+ 
 
-        # 1. initialize
-        # 2. call forward() - new nodes created for inputs
-        # 3. in forward(), apply fxns - dynamically added to graphs
-        #      construct + evaluate computation graph
-        # 4. compute loss; entire graph build, we have done forward pass
-        # 5. compute gradients for each weight in loss.backward() - backprop step
-        #     variable.gradient() ?    cumulative?
-        # 6. update weights using the gradients; optimizer.step()
+        ### validation 
         print("Training completed for epoch {}".format(epoch + 1))
-        print("Training accuracy for epoch {}: {}".format(epoch + 1, correct / total))
+        print("Training avg distance for epoch {}: {}".format(epoch + 1, tot_distance / total))
         print("Training time for this epoch: {}".format(time.time() - start_time))
 
-        correct = 0
+        # correct = 0
+        tot_distance = 0
         total = 0
         valid_file_string = 'idx,prediction,gold_label\n'
         start_time = time.time()
         print("Validation started for epoch {}".format(epoch + 1))
         random.shuffle(valid_data)
 
-        for idx, input_stream, gold_label in valid_data:
-            predicted_vector = model(input_stream)
-            predicted_label = torch.argmax(predicted_vector)
-            correct += int(predicted_label == gold_label)
-            total += 1
-            valid_file_string += (
-                str(idx)+','+str(int(predicted_label.item()))+','+str(gold_label)+'\n'
-            )
+        # for idx, input_stream, gold_label in valid_data:
+        #     predicted_vector = model(input_stream)
+        #     predicted_label = torch.argmax(predicted_vector)
+        #     correct += int(predicted_label == gold_label)
+        #     total += 1
+        #     valid_file_string += (
+        #         str(idx)+','+str(int(predicted_label.item()))+','+str(gold_label)+'\n'
+        #     )
+        for song in valid_data:
+            for line, gold_next_line in song:
+                pred_next_line = model(line)
+                # predicted_label = torch.argmax(predicted_vector)
+                # correct += int(predicted_label == gold_label)
+                total += 1
+                tot_distance += torch.linalg.norm(pred_next_line - torch.from_numpy(gold_next_line))
+                # valid_file_string += (
+                #     str(idx)+','+str(int(predicted_label.item()))+','+str(gold_label)+'\n'
+                # )
+            model.prev_vec = torch.zeros(model.h)
 
-        if (correct/total) > max_valid_acc:
-            max_valid_acc = correct / total
-            with open(
-                partial_file_name+'&epoch={:d}&loss={:.3f}.csv'.format(epoch+1, loss_float),
-                'w') as f:
-                f.write(valid_file_string)
+        # if (correct/total) > max_valid_acc:
+        if min_valid_dist is None or tot_distance / total < min_valid_dist:
+            # max_valid_acc = correct / total
+            min_valid_dist = tot_distance / total 
+            with open(f"{partial_file_name}&epoch={epoch+1}&dist={min_valid_dist}", "wb") as f:
+                torch.save(model, f)
+
+            # with open(
+            #     partial_file_name+'&epoch={:d}&loss={:.3f}.csv'.format(epoch+1, loss_float),
+            #     'w') as f:
+            #     f.write(valid_file_string)
 
 
         print("Validation completed for epoch {}".format(epoch + 1))
-        print("Validation accuracy for epoch {}: {}".format(epoch + 1, correct / total))
+        print("Validation distance for epoch {}: {}".format(epoch + 1, tot_distance / total))
         print("Validation time for this epoch: {}".format(time.time() - start_time))
 
         ##STOPPING CONDITION 
-        val_acc = correct / total 
-        if (val_acc - prev_val_accuracy < 0 and has_gone_down):
+        # val_acc = correct / total 
+        # if (val_acc - prev_val_accuracy < 0 and has_gone_down):
+        if tot_distance / total  > prev_val_dist and has_gone_down:
             print("Overfitting. Stopping.")
-            break 
-        elif val_acc - prev_val_accuracy < 0:
+            # break 
+        elif tot_distance / total > prev_val_dist:
             has_gone_down = True
         else:
             has_gone_down = False 
-        prev_val_accuracy = val_acc 
+        prev_val_dist = tot_distance / total 
 
         # END ADDED CODE 
         # You may find it beneficial to keep track of training accuracy or training loss; 
@@ -287,14 +226,8 @@ def main(hidden_dim, to_ffnn, hd_ffnn, num_epochs, learning_rate, k, ffnn): # Ad
         # Consider ffnn.py; making changes to validation if you find them necessary
 
 if __name__ == "__main__":
-    hidden_dim_rnn = 600
-    hd_to_ffnn = 50 
-    hd_in_ffnn = 50 
+    hidden_dim_rnn = 200
     number_of_epochs = 20
     lr = 0.25
-    k = 16000 # out of 16000. validation will always be 1/10 of this
-    main(hidden_dim=hidden_dim_rnn, to_ffnn=hd_to_ffnn, 
-        hd_ffnn=hd_in_ffnn, num_epochs=number_of_epochs, learning_rate=lr, k=k,
-        ffnn=True
-    )
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr)
 

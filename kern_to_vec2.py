@@ -23,7 +23,7 @@ note_to_ind_map['r'] = 264
 ind_to_note_map = {ind : note for note, ind in note_to_ind_map.items()}
 
 def zeros(hands=2):
-    return np.zeros(270*hands, dtype=np.int16) 
+    return np.zeros(267*hands, dtype=np.int16) 
 
 def get_vec_for_hand(hand_notes):
     """Gets bag of notes vector for a single hand."""
@@ -77,9 +77,10 @@ def convert_hand_vec_to_kern(hand_vec):
         return "."
     hand_notes = []
     for i in range(0,len(hand_vec),3):
-        if hand_vec[i] != 0:
+        if round(hand_vec[i]) != 0 and round(hand_vec[i+2]) != 0 \
+                                   and round(hand_vec[i+1]) != 0:
             note = ind_to_note_map[i]
-            duration = float(hand_vec[i+1]) /  hand_vec[i+2]
+            duration = round(hand_vec[i+1]) /  round(hand_vec[i+2])
             duration_notated = music_helpers.convert_duration_to_notation(duration)
             hand_notes.append(duration_notated + note)
     hand_notes.sort(key=lambda x: music_helpers.convert_to_duration(x))
