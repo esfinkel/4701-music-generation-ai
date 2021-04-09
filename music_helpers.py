@@ -107,6 +107,14 @@ def get_note_pitch(note):
       pitch += c
   return pitch
 
+def get_note_note(note):
+  """Given a kern note, returns only the [a-zA-Z][-#]* portion"""
+  pitch = ""
+  for c in note:
+    if (not c.isdigit()) and c not in {".", "]", "["}:
+      pitch += c
+  return pitch
+
 def get_index_of_pitch(line, pitch, start_char=None, end_char=None):
   """Given a spine line, returns the index at which the pitch 
   occurs, or -1 if the pitch doesn't occur. If start_char is not None,
@@ -155,7 +163,7 @@ def convert_to_duration(note):
 
 def convert_to_dur_frac(note):
   """Given a **kern note, returns the duration of this note, as a fraction. \n
-  Example: 4r -> 1/4 \n
+  Example: [4r -> 1/4 \n
   Example: 2..AA -> (1/2) + (1/4) + (1/8) -> 7/8 \n
   `.` has duration 0."""
   number=""
