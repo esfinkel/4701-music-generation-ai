@@ -25,7 +25,8 @@ class RNN_No_FFNN(nn.Module):
         self.h = hd_rnn 
         self.U = nn.Linear(hd_rnn, hd_rnn)    ## hidden input -> hidden layer
         self.V = nn.Linear(hd_rnn, input_dim) ## hidden layer -> out vector
-        self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,hd_rnn,input_dim))
+        # self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,hd_rnn,input_dim))
+        self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,input_dim,hd_rnn))
         self.W = nn.Linear(input_dim, hd_rnn) ## in vector -> hidden layer
         self.activation = nn.ReLU() 
         self.loss = nn.L1Loss() 
@@ -97,13 +98,14 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
         'Song_GD',
         'num_note_vecs',
         'hidden_dim='+str(hidden_dim),
-        'learning_rate='+str(learning_rate)
+        'learning_rate='+str(learning_rate),
+        str(round(time.time()))
     ]
     partial_file_name= 'rnn_models/'+'&'.join(file_partial_name)
     min_valid_dist = None
 
     prev_val_dist = 0 
-    has_gone_down = False 
+    dist_has_increased = False 
     for epoch in range(num_epochs):
         model.train()
         optimizer.zero_grad()
@@ -168,14 +170,14 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
 
         ##STOPPING CONDITION 
         # val_acc = correct / total 
-        # if (val_acc - prev_val_accuracy < 0 and has_gone_down):
-        if tot_distance / total  > prev_val_dist and has_gone_down:
+        # if (val_acc - prev_val_accuracy < 0 and dist_has_increased):
+        if tot_distance / total  > prev_val_dist and dist_has_increased:
             print("Overfitting. Stopping.")
             # break 
         elif tot_distance / total > prev_val_dist:
-            has_gone_down = True
+            dist_has_increased = True
         else:
-            has_gone_down = False 
+            dist_has_increased = False 
         prev_val_dist = tot_distance / total 
 
 
