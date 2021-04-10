@@ -12,7 +12,7 @@ import pickle
 import time
 from tqdm import tqdm
 
-import kern_to_vec3 as kern2vec
+import octave_vecs as kern2vec
 from rnn import RNN_No_FFNN
 import fix_kern
 
@@ -41,7 +41,7 @@ def generate(model, max_lines=150):
 
 if __name__ == "__main__":
     model = None
-    with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=536&learning_rate=0.25&epoch=5&dist=18.02570152282715', "rb") as f:
+    with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=30&learning_rate=0.25&epoch=11&dist=11.21165657043457', "rb") as f:
         model = torch.load(f)
     generate(model)
 

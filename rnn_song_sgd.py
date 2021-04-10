@@ -13,7 +13,7 @@ import time
 from tqdm import tqdm
 
 import ngram
-from kern_to_vec3 import vec_list_for_song as vectorizer
+from octave_vecs import vec_list_for_song as vectorizer
 
 def _no_grad_normal_(tensor, mean, std):
     with torch.no_grad():
@@ -25,15 +25,15 @@ class RNN_No_FFNN(nn.Module):
         self.h = hd_rnn 
         self.U = nn.Linear(hd_rnn, hd_rnn)    ## hidden input -> hidden layer
         self.V = nn.Linear(hd_rnn, input_dim) ## hidden layer -> out vector
-        self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,hd_rnn,input_dim))
+        # self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,hd_rnn,input_dim))
         self.W = nn.Linear(input_dim, hd_rnn) ## in vector -> hidden layer
         self.activation = nn.ReLU() 
         self.loss = nn.L1Loss() 
 
         self.prev_vec = torch.zeros(self.h)
 
-    def custom_weights(self, mean, std, m, n):
-        return torch.from_numpy(np.random.normal(mean, std, (m,n))).type(torch.FloatTensor)
+    # def custom_weights(self, mean, std, m, n):
+    #     return torch.from_numpy(np.random.normal(mean, std, (m,n))).type(torch.FloatTensor)
 
     def compute_Loss(self, predicted_vector, gold_label):
         return self.loss(predicted_vector, gold_label)    
@@ -180,7 +180,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
 
 
 if __name__ == "__main__":
-    hidden_dim_rnn = 536 ##TODO: try other values
+    hidden_dim_rnn = 30 ##TODO: try other values
     number_of_epochs = 20
     lr = 0.25 ##TODO: try other values 
     # with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=200&learning_rate=0.4&epoch=1&dist=17.862510681152344', 'rb') as f:
