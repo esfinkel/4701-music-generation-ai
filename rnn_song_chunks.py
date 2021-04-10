@@ -25,7 +25,7 @@ class RNN_No_FFNN(nn.Module):
         self.h = hd_rnn 
         self.U = nn.Linear(hd_rnn, hd_rnn)    ## hidden input -> hidden layer
         self.V = nn.Linear(hd_rnn, input_dim) ## hidden layer -> out vector
-        # self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,input_dim,hd_rnn))
+        # self.V.weight = torch.nn.Parameter(self.custom_weights(5,2,hd_rnn,input_dim))
         self.W = nn.Linear(input_dim, hd_rnn) ## in vector -> hidden layer
         self.activation = nn.ReLU() 
         self.loss = nn.L1Loss() 
@@ -33,30 +33,25 @@ class RNN_No_FFNN(nn.Module):
     # def custom_weights(self, mean, std, m, n):
     #     return torch.from_numpy(np.random.normal(mean, std, (m,n))).type(torch.FloatTensor)
 
-    def init_hidden(self):
-        return torch.zeros(self.h)
-
     def compute_Loss(self, predicted_vector, gold_label):
         return self.loss(predicted_vector, gold_label)    
 
-    def forward(self, line, hidden): 
-        tensor = torch.from_numpy(line).float() 
-        h_t = self.activation(self.U(hidden) + self.W(tensor))
-        return self.V(h_t), h_t
+    def forward(self, inputs): 
+        '''
+        takes in list of word embedding vectors, returns predicted 
+        label probability distribution as single vector 
+        '''
+        # tensor = torch.from_numpy(inputs).float() 
+        if type(inputs) != list:
+            inputs = [inputs]
+        h_prev = torch.zeros(self.h)
+        for line in inputs:
+            h_t = self.activation(self.U(h_prev.type(torch.FloatTensor)) + self.W(torch.from_numpy(line).float()))
+            h_prev = h_t 
+        return self.V(h_t)
 
-def load_and_vectorize_data(directory):
-    """Load all of the kern files from the directory; vectorize all data;
-    return vectors with gold labels.
-    In particular, this will return a list of elements (note_a, note_b). 
-    note_a and note_b are representations of sequential notes of a song
-    (the songs are all concatted together, with two zero vectors between
-    each two adjacent songs).
-    Each time slice is represented as a vector of length 600; each 100 indices 
-    represents the pitch/duration of one note. If a time slice has >6 notes,
-    some are ignored.
-    At each step, note_a will be the context, and note_b will be the 
-    gold label; the RNN will try to predict note_b from note_a.
-    """
+
+def load_and_vectorize_data(directory, context_len):
     # directory should be "music_in_C_training"
     veclist = []
     for filename in os.listdir(f"./{directory}"):
@@ -65,39 +60,46 @@ def load_and_vectorize_data(directory):
         with open(f"./{directory}/{filename}", "r") as f:
             filetext = f.readlines()
         file_vec = vectorizer(filetext)
-        # veclist.append(vectorizer(filetext))
         filevec_with_labels = []
-        for i in range(len(file_vec)-1): # for each time slice
-            if isinstance(file_vec[i], np.ndarray):
-                filevec_with_labels.append((file_vec[i], file_vec[i+1]))
+        for i in range(len(file_vec)-context_len): 
+            inputs = []
+            for j in range(i, i+context_len):
+                inputs.append(file_vec[i])
+            # if isinstance(file_vec[i], np.ndarray):
+            filevec_with_labels.append((inputs, file_vec[i+context_len]))
         veclist.append(filevec_with_labels)
     return veclist
 
-
-def main(hidden_dim, num_epochs, learning_rate, existing_model=None): 
+def main(hidden_dim, num_epochs, learning_rate, context_len, existing_model=None, song_batch=True, batch_size=0): 
+    if song_batch:
+        assert batch_size == 0
     print("Fetching and vectorizing data")
-    train_data = load_and_vectorize_data("music_in_C_training") 
-    valid_data = load_and_vectorize_data("music_in_C_test")
+    train_data = load_and_vectorize_data("music_in_C_training", context_len) 
+    valid_data = load_and_vectorize_data("music_in_C_test", context_len)
     print("Fetched and vectorized data")
 
+    first_song = train_data[0]
+    first_labelled_pair = first_song[0]
+    first_list_of_lines = first_labelled_pair[0]
+    first_line = first_list_of_lines[0]
     if existing_model is None:
-        model = RNN_No_FFNN(hidden_dim, len(train_data[0][0][0]))
+        model = RNN_No_FFNN(hidden_dim, len(first_line))
     else:
         model = existing_model
     optimizer = optim.SGD(model.parameters(),lr=learning_rate, momentum=0.9) 
 
     file_partial_name = [
-        'Song_GD',
-        'octave_vecs',
+        'song_context=' + str(context_len),
+        'batch_size=' + str(batch_size) if not song_batch else 'song_batch',
+        'num_note_vecs',
         'hidden_dim='+str(hidden_dim),
-        'learning_rate='+str(learning_rate),
-        str(round(time.time()))
+        'learning_rate='+str(learning_rate)
     ]
     partial_file_name= 'rnn_models/'+'&'.join(file_partial_name)
     min_valid_dist = None
 
     prev_val_dist = 0 
-    dist_has_increased = False 
+    has_gone_down = False 
     for epoch in range(num_epochs):
         model.train()
         optimizer.zero_grad()
@@ -110,25 +112,31 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
         start_time = time.time()
         print("Training started for epoch {}".format(epoch + 1))
         for song in tqdm(train_data): 
-            hidden = None
-            for line, gold_next_line in song:
+            for lines, gold_next_line in song:
 
                 ## TODO: try only computing loss every few notes? 
                 total += 1 
                 song_length += 1
-                if hidden is None:
-                    hidden = model.init_hidden()
-                predicted_next_line, hidden = model(line, hidden) 
+
+                predicted_next_line = model(lines) 
                 tot_distance += torch.linalg.norm(predicted_next_line - torch.from_numpy(gold_next_line))
                 curr_loss = model.compute_Loss(predicted_next_line, torch.from_numpy(gold_next_line))
                 loss += curr_loss 
                 tot_loss += curr_loss
-            optimizer.zero_grad()
-            loss = loss / song_length 
-            song_length = 0
-            loss.backward()
-            optimizer.step()
-            loss = torch.Tensor([0])
+                if total%batch_size == 0:
+                    optimizer.zero_grad()
+                    loss = loss / batch_size 
+                    song_length = 0
+                    loss.backward()
+                    optimizer.step()
+                    loss = torch.Tensor([0])
+            if song_batch:
+                optimizer.zero_grad()
+                loss = loss / song_length 
+                song_length = 0
+                loss.backward()
+                optimizer.step()
+                loss = torch.Tensor([0])
 
         loss_avg = tot_loss.item() / total 
         print(f"Average Loss: {loss_avg}")
@@ -145,11 +153,8 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
         random.shuffle(valid_data)
 
         for song in valid_data:
-            hidden = None
-            for line, gold_next_line in song:
-                if hidden is None:
-                    hidden = model.init_hidden()
-                pred_next_line, hidden = model(line, hidden)
+            for lines, gold_next_line in song:
+                pred_next_line = model(lines)
                 total += 1
                 tot_distance += torch.linalg.norm(pred_next_line - torch.from_numpy(gold_next_line))
 
@@ -165,21 +170,24 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
 
         ##STOPPING CONDITION 
         # val_acc = correct / total 
-        if tot_distance / total  > prev_val_dist and dist_has_increased:
-            print("***WARNING*** OVERFITTING")
+        # if (val_acc - prev_val_accuracy < 0 and has_gone_down):
+        if tot_distance / total  > prev_val_dist and has_gone_down:
+            print("WARNING: Overfitting.")
             # break 
         elif tot_distance / total > prev_val_dist:
-            dist_has_increased = True
+            has_gone_down = True
         else:
-            dist_has_increased = False 
+            has_gone_down = False 
         prev_val_dist = tot_distance / total 
 
 
 if __name__ == "__main__":
     hidden_dim_rnn = 30 ##TODO: try other values
     number_of_epochs = 20
-    lr = 0.25 ##TODO: try other values 
+    lr = 0.5 ##TODO: try other values 
+    context = 10
+    batch_size = 3
     # with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=200&learning_rate=0.4&epoch=1&dist=17.862510681152344', 'rb') as f:
     #     model = torch.load(f)
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=None)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, context_len=context, existing_model=None, song_batch=False, batch_size=batch_size)
 
