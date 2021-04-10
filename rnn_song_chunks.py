@@ -185,8 +185,8 @@ if __name__ == "__main__":
     hidden_dim_rnn = 30 ##TODO: try other values
     number_of_epochs = 20
     lr = 0.5 ##TODO: try other values 
-    context = 3
-    batch_size = 100
+    context = 10
+    batch_size = 3
     # with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=200&learning_rate=0.4&epoch=1&dist=17.862510681152344', 'rb') as f:
     #     model = torch.load(f)
     main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, context_len=context, existing_model=None, song_batch=False, batch_size=batch_size)

@@ -28,6 +28,9 @@ ind_to_note_map = {ind : note for note, ind in note_to_ind_map.items()}
 def zeros(hands=2):
     return np.zeros(16*hands, dtype=np.int16) 
 
+def ones(hands=2):
+    return np.ones(16*hands, dtype=np.int16) 
+
 def get_vec_for_hand(hand_notes):
     """Gets bag of notes vector for a single hand. """
     vec = zeros(hands=1)
@@ -95,12 +98,12 @@ def convert_line_vec_to_kern(line_vec):
     
 def vec_list_for_song(lines):
     """Converts a list of kern lines into a list of vectors. """
-    vec_list = [zeros()]
+    vec_list = [ones()]
     for line in lines:
         vec = convert_kern_line_to_vec(line)
         if vec is not None:
             vec_list.append(vec)
-    vec_list.append(zeros())
+    vec_list.append(ones())
     return vec_list
 
 def song_from_vec_list(vecs):
