@@ -12,9 +12,7 @@ import pickle
 import time
 from tqdm import tqdm
 
-import ngram
-from kern_to_vec3 import vec_list_for_song as vectorizer
-import kern_to_vec3
+import kern_to_vec3 as kern2vec
 from rnn import RNN_No_FFNN
 import fix_kern
 
@@ -29,13 +27,13 @@ def write_music(formatted):
 
 def generate(model, max_lines=150):
     print("generating music.....")
-    curr_line = kern_to_vec3.zeros()
+    curr_line = kern2vec.zeros()
     generated = []
     while len(generated) <= max_lines:
         curr_line = model(curr_line).detach().numpy()
         generated.append(curr_line)
     print("Converting music to **kern....")
-    song_string = kern_to_vec3.song_from_vec_list(generated)
+    song_string = kern2vec.song_from_vec_list(generated)
     new_music_formatted = fix_kern.convert_to_good_kern(song_string)
     print("Writing music.....")
     write_music(new_music_formatted)
@@ -43,7 +41,7 @@ def generate(model, max_lines=150):
 
 if __name__ == "__main__":
     model = None
-    with open('./rnn_models/1618002010&hidden_dim=200&num_epochs=20&learning_rate=0.25&epoch=20&dist=17.96506118774414', "rb") as f:
+    with open('./rnn_models/Song_GD&num_note_vecs&hidden_dim=536&learning_rate=0.25&epoch=5&dist=18.02570152282715', "rb") as f:
         model = torch.load(f)
     generate(model)
 

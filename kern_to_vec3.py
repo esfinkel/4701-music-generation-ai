@@ -77,7 +77,7 @@ def convert_kern_line_to_vec(line):
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 def convert_hand_vec_to_kern(hand_vec):
-    print(hand_vec[-1])
+    # print(hand_vec[-1])
     if round(hand_vec[-1]) < 0:
         return "."
     possible_notes = []
