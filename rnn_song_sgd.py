@@ -74,7 +74,7 @@ def load_and_vectorize_data(directory):
     return veclist
 
 
-def main(hidden_dim, num_epochs, learning_rate, existing_model=None): 
+def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start=0): 
     print("Fetching and vectorizing data")
     train_data = load_and_vectorize_data("music_in_C_training") 
     valid_data = load_and_vectorize_data("music_in_C_test")
@@ -98,7 +98,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None):
 
     prev_val_dist = 0 
     dist_has_increased = False 
-    for epoch in range(num_epochs):
+    for epoch in range(epoch_start, epoch_start+num_epochs):
         model.train()
         optimizer.zero_grad()
 
