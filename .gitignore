@@ -5,6 +5,9 @@ music*/
 log_*.txt
 generated*/
 
+# models
+rnn_models/
+
 # other
 .DS_Store
 
