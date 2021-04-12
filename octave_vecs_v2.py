@@ -2,6 +2,7 @@ import numpy as np
 import re
 import music_helpers
 import math
+import random
 
 import transpose_pieces
 
@@ -67,7 +68,12 @@ def convert_kern_line_to_vec(line):
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 def convert_hand_vec_to_kern(hand_vec, hand):
-    if np.argmax(hand_vec[-6:]) == 0:
+    # print("num_notes distribution pre exp:", hand_vec[-6:])
+    hand_vec = (np.array(math.e**hand_vec) + np.concatenate((np.zeros(15), np.array(range(5, -1, -1)))))**3
+    num_notes = random.choices(range(0, 6), hand_vec[-6:])[0]
+    # print("num_notes distribution:", hand_vec[-6:])
+    # print("num_notes:", num_notes)
+    if num_notes == 0:
         return "."
 
     if round(hand_vec[13]) <= 0 or round(hand_vec[14])<= 0:
@@ -77,8 +83,8 @@ def convert_hand_vec_to_kern(hand_vec, hand):
                         round(hand_vec[13]) / round(hand_vec[14]))
 
     notes = []
-    num_notes = np.argmax(hand_vec[-6:])
-    note_inds = np.argsort(-1*hand_vec[:13])[:num_notes]
+    num_notes = 1 # TODO remove if you fix this
+    note_inds = random.choices(range(13), hand_vec[:13], k=num_notes)
     # print(note_inds)
     for i in note_inds:
         note = ind_to_note_map[i] if hand == 'R' else ind_to_note_map[i].upper()
