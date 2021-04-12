@@ -26,6 +26,9 @@ note_to_ind_map['r'] = 12
 
 ind_to_note_map = {ind : note for note, ind in note_to_ind_map.items()}
 
+common_rhythms = [(1, 8), (1, 16), (1, 4), (1, 12), (3, 8), (1, 2), (1, 24), (1, 32), (3, 4), (3, 16), (1, 1), (3, 32), (1, 48)]
+rhythm_inds = {r: i for i, r in enumerate(common_rhythms)}
+
 # indices 15, 16, 17, 18, 19, 20 correspond to 0, 1, 2, 3, 4, 5 notes
 def zeros(hands=2):
     return np.zeros(21*hands, dtype=np.int16) 
@@ -76,11 +79,12 @@ def convert_hand_vec_to_kern(hand_vec, hand):
     if num_notes == 0:
         return "."
 
-    if round(hand_vec[13]) <= 0 or round(hand_vec[14])<= 0:
-        hand_dur = "4"
-    else:
-        hand_dur = music_helpers.convert_duration_to_notation(
-                        round(hand_vec[13]) / round(hand_vec[14]))
+    hand_dur = "4"
+    # if round(hand_vec[13]) <= 0 or round(hand_vec[14])<= 0:
+    #     hand_dur = "4"
+    # else:
+    #     hand_dur = music_helpers.convert_duration_to_notation(
+    #                     round(hand_vec[13]) / round(hand_vec[14]))
 
     notes = []
     num_notes = 1 # TODO remove if you fix this
