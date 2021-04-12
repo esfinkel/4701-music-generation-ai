@@ -95,6 +95,8 @@ def convert_line_vec_to_kern(line_vec):
     # print(line_vec)
     left_notes = convert_hand_vec_to_kern(line_vec[:len(zeros(hands=1))], 'L')
     right_notes = convert_hand_vec_to_kern(line_vec[len(zeros(hands=1)):], 'R')
+    if left_notes == "." and right_notes == ".":
+        return None
     return left_notes+"\t"+right_notes
     
 def vec_list_for_song(lines):
@@ -115,7 +117,9 @@ def song_from_vec_list(vecs):
         right = vec[len(zeros(hands=1)):]
         if np.argmax(left[-6:]) == 0 and np.argmax(right[-6:]) == 0:
             continue
-        song += convert_line_vec_to_kern(vec) + "\n"
+        song_kern = convert_line_vec_to_kern(vec)
+        if song_kern is not None:
+            song += song_kern + "\n"
     return song        
 
 def test():
