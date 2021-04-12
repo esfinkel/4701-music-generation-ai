@@ -88,7 +88,7 @@ def convert_hand_vec_to_kern(hand_vec, hand):
 
     notes = []
     num_notes = 1 # TODO remove if you fix this
-    note_inds = random.choices(range(13), hand_vec[:13], k=num_notes)
+    note_inds = random.choices(range(13), math.e**hand_vec[:13], k=num_notes)
     # print(note_inds)
     for i in note_inds:
         note = ind_to_note_map[i] if hand == 'R' else ind_to_note_map[i].upper()
