@@ -26,6 +26,9 @@ note_to_ind_map['r'] = 12
 
 ind_to_note_map = {ind : note for note, ind in note_to_ind_map.items()}
 
+# I processed all the pieces, and found that these are the most common durations.
+# So if we ever make that one-hot, we'll use these, and any other duration
+# can default to quarter notes or whatever
 common_rhythms = [(1, 8), (1, 16), (1, 4), (1, 12), (3, 8), (1, 2), (1, 24), (1, 32), (3, 4), (3, 16), (1, 1), (3, 32), (1, 48)]
 rhythm_inds = {r: i for i, r in enumerate(common_rhythms)}
 
@@ -60,7 +63,7 @@ def get_vec_for_hand(hand_notes):
     return vec
 
 def convert_kern_line_to_vec(line):
-    """ Bag of notes, constrianed to 1 octave per hand. """
+    """ Bag of notes, constrained to 1 octave per hand. """
     if line.strip() == "" \
         or len(list(filter(lambda x: x.strip() != "", line.split("\t")))) != 2: 
         return None
@@ -71,8 +74,14 @@ def convert_kern_line_to_vec(line):
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
 def convert_hand_vec_to_kern(hand_vec, hand):
+    """Convert vector for one hand to kern.
+    
+    Bias the probability distribution for num_notes and choose num notes. 
+    Then take probability distribution for notes, and choose them.
+    """
     # print("num_notes distribution pre exp:", hand_vec[-6:])
-    hand_vec = (np.array(math.e**hand_vec) + np.concatenate((np.zeros(15), np.array(range(5, -1, -1)))))**3
+    bias_term = np.concatenate((np.zeros(15), np.array(range(5, -1, -1)))) # prefer fewer notes
+    hand_vec = (np.array(math.e**hand_vec) + bias_term)**3 # math.e because these are log probs
     num_notes = random.choices(range(0, 6), hand_vec[-6:])[0]
     # print("num_notes distribution:", hand_vec[-6:])
     # print("num_notes:", num_notes)
