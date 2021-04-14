@@ -58,7 +58,7 @@ def generate(model, max_lines=150):
 
 if __name__ == "__main__":
     model = None
-    with open('rnn_models/Prob_vecs&hidden_dim=100&learning_rate=0.5&epoch=21&dist=2.4277327060699463', "rb") as f:
+    with open('rnn_models/log_prob_vecs&hidden_dim=50&learning_rate=0.25&epoch=40&dist=1.9347562789916992', "rb") as f:
         model = torch.load(f)
     generate(model)
 

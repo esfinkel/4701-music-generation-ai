@@ -42,6 +42,21 @@ class RNN_No_FFNN(nn.Module):
         return torch.zeros(self.h)
 
     def compute_Loss(self, predicted_vector, gold_label):
+        softmax = nn.LogSoftmax()
+        gold_label = gold_label.float()
+        ## DON'T TAKE LOG
+        soft_gold = torch.cat((
+            torch.log_softmax(gold_label[:13], 0), #pitch 1 L
+            torch.log_softmax(gold_label[13:26], 0), #pitch 2 L
+            torch.log_softmax(gold_label[26:39], 0), #pitch 3 L
+            torch.log_softmax(gold_label[39:48], 0), #duration L
+            torch.log_softmax(gold_label[48:52], 0), #num notes L 
+            torch.log_softmax(gold_label[52:13+52], 0), #pitch 1 R
+            torch.log_softmax(gold_label[13+52:26+52], 0), #pitch 2 R
+            torch.log_softmax(gold_label[26+52:39+52], 0), #pitch 3 R
+            torch.log_softmax(gold_label[39+52:48+52], 0), #duration R
+            torch.log_softmax(gold_label[48+52:52+52], 0) #num notes R
+        ))
         return self.loss(predicted_vector, gold_label.float())   
 
     def forward(self, line, hidden): 
@@ -49,16 +64,16 @@ class RNN_No_FFNN(nn.Module):
         h_t = self.activation(self.U(hidden) + self.W(tensor))
         pred_vector = self.V(h_t)
         pred_logsoft = torch.cat((
-            torch.softmax(pred_vector[:13], 0), #pitch 1 L
-            torch.softmax(pred_vector[13:26], 0), #pitch 2 L
-            torch.softmax(pred_vector[26:39], 0), #pitch 3 L
-            torch.softmax(pred_vector[39:48], 0), #duration L
-            torch.softmax(pred_vector[48:52], 0), #num notes L 
-            torch.softmax(pred_vector[52:13+52], 0), #pitch 1 R
-            torch.softmax(pred_vector[13+52:26+52], 0), #pitch 2 R
-            torch.softmax(pred_vector[26+52:39+52], 0), #pitch 3 R
-            torch.softmax(pred_vector[39+52:48+52], 0), #duration R
-            torch.softmax(pred_vector[48+52:52+52], 0) #num notes R
+            torch.log_softmax(pred_vector[:13], 0), #pitch 1 L
+            torch.log_softmax(pred_vector[13:26], 0), #pitch 2 L
+            torch.log_softmax(pred_vector[26:39], 0), #pitch 3 L
+            torch.log_softmax(pred_vector[39:48], 0), #duration L
+            torch.log_softmax(pred_vector[48:52], 0), #num notes L 
+            torch.log_softmax(pred_vector[52:13+52], 0), #pitch 1 R
+            torch.log_softmax(pred_vector[13+52:26+52], 0), #pitch 2 R
+            torch.log_softmax(pred_vector[26+52:39+52], 0), #pitch 3 R
+            torch.log_softmax(pred_vector[39+52:48+52], 0), #duration R
+            torch.log_softmax(pred_vector[48+52:52+52], 0) #num notes R
         ))
         return pred_logsoft.float(), h_t
 
@@ -90,7 +105,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
     optimizer = optim.SGD(model.parameters(),lr=learning_rate, momentum=0.9) 
 
     file_partial_name = [
-        'Prob_vecs',
+        'log_prob_vecs',
         'hidden_dim='+str(hidden_dim),
         'learning_rate='+str(learning_rate)
     ]
@@ -118,7 +133,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                 if hidden is None:
                     hidden = model.init_hidden()
                 predicted_next_line, hidden = model(line, hidden) 
-                tot_distance += torch.linalg.norm(predicted_next_line - torch.from_numpy(gold_next_line))
+                tot_distance += torch.linalg.norm(math.e**predicted_next_line - torch.from_numpy(gold_next_line))
                 curr_loss = model.compute_Loss(predicted_next_line, torch.from_numpy(gold_next_line))
                 loss += curr_loss 
                 tot_loss += curr_loss
@@ -150,7 +165,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                     hidden = model.init_hidden()
                 pred_next_line, hidden = model(line, hidden)
                 total += 1
-                tot_distance += torch.linalg.norm(pred_next_line - torch.from_numpy(gold_next_line))
+                tot_distance += torch.linalg.norm(math.e**pred_next_line - torch.from_numpy(gold_next_line))
 
         if min_valid_dist is None or tot_distance / total < min_valid_dist:
             min_valid_dist = tot_distance / total 
@@ -175,10 +190,10 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
 
 
 if __name__ == "__main__":
-    hidden_dim_rnn = 100 
+    hidden_dim_rnn = 50
     number_of_epochs = 20
-    lr = 0.5
+    lr = 0.25
     # with open('rnn_models/Song_GD&octave_vecs&hidden_dim=30&learning_rate=0.25&1618103280&epoch=20&dist=12.615211486816406', 'rb') as f:
     #     model = torch.load(f)
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=None, epoch_start=20)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=None, epoch_start=1)
 

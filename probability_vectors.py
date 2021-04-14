@@ -76,14 +76,14 @@ def convert_hand_vec_to_kern(hand_vec, hand):
     Bias the probability distribution for num_notes and choose num notes. 
     Then take probability distribution for notes, and choose them.
     """
-    num_notes = random.choices(range(0,4), np.clip(hand_vec[48:], a_min=0, a_max=None))[0]
+    num_notes = random.choices(range(0,4), math.e**np.clip(hand_vec[48:], a_min=0, a_max=None))[0]
     if num_notes == 0:
         return "."
-    duration_ind = random.choices(range(9), np.clip(hand_vec[39:48], a_min=0, a_max=None))[0]
+    duration_ind = random.choices(range(9), math.e**np.clip(hand_vec[39:48], a_min=0, a_max=None))[0]
     duration = music_helpers.convert_duration_to_notation(common_rhythms[duration_ind])
     notes = []
     for i in range(num_notes):
-        note_ind = random.choices(range(13), np.clip(hand_vec[i*13:i*13+13], a_min=0, a_max=None))[0]
+        note_ind = random.choices(range(13), math.e**np.clip(hand_vec[i*13:i*13+13], a_min=0, a_max=None))[0]
         note = ind_to_note_map[note_ind]
         if hand=='L' and note != 'r':
             notes.append(duration+note.upper())
