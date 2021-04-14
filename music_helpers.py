@@ -100,7 +100,8 @@ def get_left_note(spine):
   return note
 
 def get_note_pitch(note):
-  """Given a kern note, returns only the pitch portion."""
+  """Given a kern note, returns only the pitch portion, without sharps
+  or flats """
   pitch = ""
   for c in note:
     if (not c.isdigit()) and c not in {".", "]", "[", "#", "-"}:
@@ -115,6 +116,18 @@ def get_note_note(note):
       pitch += c
   return pitch
 
+def get_gen_note(note):
+  """Given kern note, returns only the lowercase first letter, with
+  any sharps and flats. """
+  pitch = ""
+  for c in note:
+    if (not c.isdigit()) and c not in {".", "]", "["}:
+      if c in {'#', '-'}:
+        pitch += c
+      elif len(pitch) == 0:
+        pitch += c.lower()
+  return pitch
+
 def get_index_of_pitch(line, pitch, start_char=None, end_char=None):
   """Given a spine line, returns the index at which the pitch 
   occurs, or -1 if the pitch doesn't occur. If start_char is not None,
@@ -122,7 +135,7 @@ def get_index_of_pitch(line, pitch, start_char=None, end_char=None):
   Similarly with end_char. """
   notes = line.strip().split(" ")
   for i in range(len(notes)):
-    note_pitch = get_note_pitch(notes[i])
+    note_pitch = get_note_note(notes[i])
     if pitch == note_pitch:
       if (start_char is None or notes[i][0] == start_char) \
           and (end_char is None or notes[i][-1] == end_char):
@@ -134,7 +147,7 @@ def note_in_spine(pitch, spine_line):
   in the line."""
   notes = spine_line.strip().split(" ")
   for i in range(len(notes)):
-    note_pitch = get_note_pitch(notes[i])
+    note_pitch = get_note_note(notes[i])
     if note_pitch == pitch:
       return True
   return False

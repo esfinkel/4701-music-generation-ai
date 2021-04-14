@@ -1,6 +1,6 @@
 import os
 import re
-from music_helpers import convert_to_duration, get_duration_of_spine, get_left_note, get_note_pitch, get_index_of_pitch, note_in_spine, convert_to_dur_frac, frac_add, frac_sub
+from music_helpers import convert_to_duration, get_duration_of_spine, get_left_note, get_note_note, get_index_of_pitch, note_in_spine, convert_to_dur_frac, frac_add, frac_sub
 from fractions import Fraction
 
 def n_lines_of(n, l_note, r_note):
@@ -255,14 +255,12 @@ def fix_ties_for_spine(spine, lines, i):
   Spine must be 1 or 0.
   """
   line = lines[i]
-  if line.split("\t")[spine].strip() == "[2cc [2a [2f":
-    test = 1
   for note in line.split("\t")[spine].split(" "):
     if "[" in note and "]" not in note:
-      note_pitch = get_note_pitch(note)
+      note_pitch = get_note_note(note)
       lines = crawl_forward(i, note_pitch, spine, lines)
     elif "]" in note and "[" not in note:
-      note_pitch = get_note_pitch(note)
+      note_pitch = get_note_note(note)
       lines = crawl_backward(i, note_pitch, spine, lines)
   return lines
 

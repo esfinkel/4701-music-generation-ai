@@ -9,6 +9,9 @@ import transpose_pieces
 NOTE: all of these functions assume the input is CLEANED music, so no
 extraneous characters, and no notes that aren't in their cannonical
 representation. 
+
+THIS VERSION KEEPS TRACK OF THE NUMBER OF NOTES IN THE LINE 
+
 """
 
 # make these global maps just once to save on computation
