@@ -77,6 +77,7 @@ def to_good_prob_dist(vec):
     ## since our vectors are already in log space, we just need
     ## to shift probabilities to 0
     return vec - np.min(vec)
+    # return math.e**vec
 
 def convert_hand_vec_to_kern(hand_vec, hand):
     """Convert vector for one hand to kern.
@@ -133,8 +134,6 @@ def song_from_vec_list(vecs):
         if song_kern is not None:
             song += song_kern + "\n"
     return song        
-
-
 
 def test():
     with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 10 in G major") as f:

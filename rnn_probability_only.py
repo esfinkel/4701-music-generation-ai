@@ -22,6 +22,14 @@ from tqdm import tqdm
 import ngram
 from probability_vectors import vec_list_for_song as vectorizer
 
+def prob_dist(vec):
+    return torch.softmax(vec, 0)
+
+
+def log_prob_dist(vec):
+    return torch.log_softmax(vec, 0)
+
+
 class RNN_No_FFNN(nn.Module):
     def __init__(self, hd_rnn, input_dim): # Add relevant parameters
         super(RNN_No_FFNN, self).__init__()
@@ -44,32 +52,48 @@ class RNN_No_FFNN(nn.Module):
         h_t = self.activation(self.U(hidden) + self.W(tensor))
         pred_vector = self.V(h_t)
         pred_logsoft = torch.cat((
-            torch.log_softmax(pred_vector[:13], 0), #pitch 1 L
-            torch.log_softmax(pred_vector[13:26], 0), #pitch 2 L
-            torch.log_softmax(pred_vector[26:39], 0), #pitch 3 L
-            torch.log_softmax(pred_vector[39:48], 0), #duration L
-            torch.log_softmax(pred_vector[48:52], 0), #num notes L 
-            torch.log_softmax(pred_vector[52:13+52], 0), #pitch 1 R
-            torch.log_softmax(pred_vector[13+52:26+52], 0), #pitch 2 R
-            torch.log_softmax(pred_vector[26+52:39+52], 0), #pitch 3 R
-            torch.log_softmax(pred_vector[39+52:48+52], 0), #duration R
-            torch.log_softmax(pred_vector[48+52:52+52], 0) #num notes R
+            log_prob_dist(pred_vector[:13]), #pitch 1 L
+            log_prob_dist(pred_vector[13:26]), #pitch 2 L
+            log_prob_dist(pred_vector[26:39]), #pitch 3 L
+            log_prob_dist(pred_vector[39:48]), #duration L
+            log_prob_dist(pred_vector[48:52]), #num notes L 
+            log_prob_dist(pred_vector[52:13+52]), #pitch 1 R
+            log_prob_dist(pred_vector[13+52:26+52]), #pitch 2 R
+            log_prob_dist(pred_vector[26+52:39+52]), #pitch 3 R
+            log_prob_dist(pred_vector[39+52:48+52]), #duration R
+            log_prob_dist(pred_vector[48+52:52+52]) #num notes R
         ))
         return pred_logsoft.float(), h_t
 
 def soft_gold(gold_label):
     gold_label = gold_label.float()
     soft_gold = torch.cat((
-        torch.softmax(gold_label[:13], 0), #pitch 1 L
-        torch.softmax(gold_label[13:26], 0), #pitch 2 L
-        torch.softmax(gold_label[26:39], 0), #pitch 3 L
-        torch.softmax(gold_label[39:48], 0), #duration L
-        torch.softmax(gold_label[48:52], 0), #num notes L 
-        torch.softmax(gold_label[52:13+52], 0), #pitch 1 R
-        torch.softmax(gold_label[13+52:26+52], 0), #pitch 2 R
-        torch.softmax(gold_label[26+52:39+52], 0), #pitch 3 R
-        torch.softmax(gold_label[39+52:48+52], 0), #duration R
-        torch.softmax(gold_label[48+52:52+52], 0) #num notes R
+        prob_dist(gold_label[:13]), #pitch 1 L
+        prob_dist(gold_label[13:26]), #pitch 2 L
+        prob_dist(gold_label[26:39]), #pitch 3 L
+        prob_dist(gold_label[39:48]), #duration L
+        prob_dist(gold_label[48:52]), #num notes L 
+        prob_dist(gold_label[52:13+52]), #pitch 1 R
+        prob_dist(gold_label[13+52:26+52]), #pitch 2 R
+        prob_dist(gold_label[26+52:39+52]), #pitch 3 R
+        prob_dist(gold_label[39+52:48+52]), #duration R
+        prob_dist(gold_label[48+52:52+52]) #num notes R
+    ))
+    return soft_gold
+
+def log_soft_gold(gold_label):
+    gold_label = gold_label.float()
+    soft_gold = torch.cat((
+        log_prob_dist(gold_label[:13]), #pitch 1 L
+        log_prob_dist(gold_label[13:26]), #pitch 2 L
+        log_prob_dist(gold_label[26:39]), #pitch 3 L
+        log_prob_dist(gold_label[39:48]), #duration L
+        log_prob_dist(gold_label[48:52]), #num notes L 
+        log_prob_dist(gold_label[52:13+52]), #pitch 1 R
+        log_prob_dist(gold_label[13+52:26+52]), #pitch 2 R
+        log_prob_dist(gold_label[26+52:39+52]), #pitch 3 R
+        log_prob_dist(gold_label[39+52:48+52]), #duration R
+        log_prob_dist(gold_label[48+52:52+52]) #num notes R
     ))
     return soft_gold
 
@@ -91,8 +115,8 @@ def load_and_vectorize_data(directory):
 def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start=0): 
     print("Fetching and vectorizing data")
     train_data = load_and_vectorize_data("music_in_C_training") 
-    extra_train_data = load_and_vectorize_data("processed_music") 
-    train_data.extend(extra_train_data)
+    # extra_train_data = load_and_vectorize_data("processed_music") 
+    # train_data.extend(extra_train_data)
     valid_data = load_and_vectorize_data("music_in_C_test")
     print("Fetched and vectorized data")
 
@@ -131,7 +155,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                 if hidden is None:
                     hidden = model.init_hidden()
                 predicted_next_line, hidden = model(line, hidden) 
-                tot_distance += torch.linalg.norm(math.e**predicted_next_line - soft_gold(torch.from_numpy(gold_next_line)))
+                tot_distance += torch.linalg.norm(predicted_next_line - log_soft_gold(torch.from_numpy(gold_next_line)))
                 curr_loss = model.compute_Loss(predicted_next_line, torch.from_numpy(gold_next_line))
                 loss += curr_loss 
                 tot_loss += curr_loss
@@ -163,7 +187,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                     hidden = model.init_hidden()
                 pred_next_line, hidden = model(line, hidden)
                 total += 1
-                tot_distance += torch.linalg.norm(math.e**pred_next_line - soft_gold(torch.from_numpy(gold_next_line)))
+                tot_distance += torch.linalg.norm(pred_next_line - log_soft_gold(torch.from_numpy(gold_next_line)))
 
         if min_valid_dist is None or tot_distance / total < min_valid_dist:
             min_valid_dist = tot_distance / total 
@@ -192,7 +216,7 @@ if __name__ == "__main__":
     number_of_epochs = 20
     lr = 0.25
     model=None
-    with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=1&epoch=29&dist=0.31220051646232605', 'rb') as f:
-        model = torch.load(f)
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=26)
+    # with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=1&epoch=29&dist=0.31220051646232605', 'rb') as f:
+    #     model = torch.load(f)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=0)
 
