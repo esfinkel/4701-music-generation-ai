@@ -3,6 +3,8 @@ import re
 import music_helpers
 import math
 import random
+import torch
+import fix_kern
 
 import transpose_pieces
 
@@ -70,20 +72,29 @@ def convert_kern_line_to_vec(line):
 
     return np.concatenate((get_vec_for_hand(l_notes), get_vec_for_hand(r_notes)))
 
+def to_good_prob_dist(vec):
+    ## inverse of softmax is log(S_i) + c
+    ## since our vectors are already in log space, we just need
+    ## to shift probabilities to 0
+    return vec - np.min(vec)
+
 def convert_hand_vec_to_kern(hand_vec, hand):
     """Convert vector for one hand to kern.
     
     Bias the probability distribution for num_notes and choose num notes. 
     Then take probability distribution for notes, and choose them.
     """
-    num_notes = random.choices(range(0,4), math.e**np.clip(hand_vec[48:], a_min=0, a_max=None))[0]
+    # x = to_good_prob_dist(hand_vec[48:])
+    num_notes = random.choices(range(0,4), to_good_prob_dist(hand_vec[48:]))[0]
+    # num_notes = 1
     if num_notes == 0:
         return "."
-    duration_ind = random.choices(range(9), math.e**np.clip(hand_vec[39:48], a_min=0, a_max=None))[0]
+    duration_ind = random.choices(range(9), to_good_prob_dist(hand_vec[39:48]))[0]
     duration = music_helpers.convert_duration_to_notation(common_rhythms[duration_ind])
+    # duration = "4"
     notes = []
     for i in range(num_notes):
-        note_ind = random.choices(range(13), math.e**np.clip(hand_vec[i*13:i*13+13], a_min=0, a_max=None))[0]
+        note_ind = random.choices(range(13), to_good_prob_dist(hand_vec[i*13:i*13+13]))[0]
         note = ind_to_note_map[note_ind]
         if hand=='L' and note != 'r':
             notes.append(duration+note.upper())
@@ -123,13 +134,31 @@ def song_from_vec_list(vecs):
             song += song_kern + "\n"
     return song        
 
+
+
 def test():
     with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 10 in G major") as f:
         song = f.readlines()
     vecs = vec_list_for_song(song)
-    converted_song = song_from_vec_list(vecs)
+    vec2 = []
+    for vec in vecs:
+        vec = torch.from_numpy(vec).float()
+        vec = torch.cat((
+            torch.log_softmax(vec[:13], 0), #pitch 1 L
+            torch.log_softmax(vec[13:26], 0), #pitch 2 L
+            torch.log_softmax(vec[26:39], 0), #pitch 3 L
+            torch.log_softmax(vec[39:48], 0), #duration L
+            torch.log_softmax(vec[48:52], 0), #num notes L 
+            torch.log_softmax(vec[52:13+52], 0), #pitch 1 R
+            torch.log_softmax(vec[13+52:26+52], 0), #pitch 2 R
+            torch.log_softmax(vec[26+52:39+52], 0), #pitch 3 R
+            torch.log_softmax(vec[39+52:48+52], 0), #duration R
+            torch.log_softmax(vec[48+52:52+52], 0) #num notes R
+        ))
+        vec2.append(vec.detach().numpy())
+    converted_song = song_from_vec_list(vec2)
     with open("./test_song", "w") as f:
-        f.write(converted_song)
+        f.write(fix_kern.convert_to_good_kern(converted_song))
 
 if __name__ == "__main__":
     test()
