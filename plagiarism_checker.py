@@ -4,8 +4,8 @@ import numpy as np
 import re
 
 def is_rest(s):
-    rest_re = r"[0-9]+r"
-    return re.match(rest_re, s) is not None
+    rest_re = r"[0-9]+.*r"
+    return s=="." or (re.match(rest_re, s) is not None)
 
 
 def normalize_line(s):
@@ -31,8 +31,11 @@ def normalize_song(lines):
     song = []
     for line in lines:
         n = normalize_line(line)
-        if n is not None and len(n)>0:
+        if n is not None:
             song.append(n)
+        # include this if rests should be included:
+        elif n=="":
+            song.append(".")
     return song
 
 
@@ -68,11 +71,13 @@ def matching_phrases(generated, original, k, print_phrases=False):
     count = 0
     was_pla = np.zeros(len(generated)-k+1)
     # print()
-    original_text = "\n".join(normalize_song(original))
+    original_text = "\n".join(original)
     for i in range(len(generated)-k):
         passage = generated[i:i+k]
+        if passage == ["."]*k:
+            continue
         # print(len(passage))
-        passage_text = "\n".join(normalize_song(passage))
+        passage_text = "\n".join(passage)
         if passage_text in original_text:
             matches += 1
             was_pla[i] = 1
@@ -109,6 +114,10 @@ def check_generated_k(generated, song_texts, k):
     print(
         f"Potential plagiarism from {files} files. {sum(was_pla_accum > 0.1)} passages were found in training data, for a total of {sum(file_counts.values())} times."
     )
+    if k==1:
+        for i in range(num_passages):
+            if was_pla_accum[i]==0:
+                print(generated[i])
     plagiarism_threshold = 0.1 # 1>x>0 to account for float error
     filtered_array_val = sum(was_pla_accum > plagiarism_threshold)
     print(f"Passages potentially plagiarized: {round(filtered_array_val*100/num_passages, 1)}%\n")
@@ -121,7 +130,7 @@ def check_generated(filepath):
         generated = f.readlines()
     generated = normalize_song(generated)
     print('\nk is the length of a "passage"\n')
-    for k in [1, 2, 5, 10]:
+    for k in [1, 2, 3, 5, 10]:
         check_generated_k(generated, song_texts, k)
 
 
