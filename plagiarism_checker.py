@@ -1,10 +1,17 @@
 import sys, os
 import collections
 import numpy as np
+import re
+
+def is_rest(s):
+    rest_re = r"[0-9]+r"
+    return re.match(rest_re, s) is not None
+
 
 def normalize_line(s):
-    """Return normalized form of the **kern line: all notes (of either
-    hand), sorted alphabetically and then joined by spaces.
+    """Return normalized form of the **kern line `s`: all notes (of either
+    hand), sorted alphabetically and then joined by spaces. Will be
+    the empty string if `s` only contains rests.
     
     Return None if line does not have any notes."""
     s = s.replace("[", "").replace("]", "")
@@ -12,7 +19,9 @@ def normalize_line(s):
         return None
     if "*" in s or "=" in s:
         return None
-    return " ".join(sorted(s.strip().split()))
+    partial = list(set(s.strip().split()))
+    partial = list(filter(lambda s: not is_rest(s), partial))
+    return " ".join(sorted(partial))
 
 def normalize_song(lines):
     """Given a list of **kern lines, return a normalized list. All non-music
@@ -22,7 +31,7 @@ def normalize_song(lines):
     song = []
     for line in lines:
         n = normalize_line(line)
-        if n is not None:
+        if n is not None and len(n)>0:
             song.append(n)
     return song
 
