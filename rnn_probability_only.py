@@ -1,8 +1,3 @@
-"""
-Like rnn_song_sgd, but more classification-oriented. Number of notes is
-one-hot instead of integer; trying classification-oriented setup, including
-loss function `torch.nn.KLDivLoss`.
-"""
 
 import numpy as np
 import torch
@@ -115,8 +110,6 @@ def load_and_vectorize_data(directory):
 def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start=0): 
     print("Fetching and vectorizing data")
     train_data = load_and_vectorize_data("music_in_C_training") 
-    # extra_train_data = load_and_vectorize_data("processed_music") 
-    # train_data.extend(extra_train_data)
     valid_data = load_and_vectorize_data("music_in_C_test")
     print("Fetched and vectorized data")
 
@@ -214,9 +207,9 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
 if __name__ == "__main__":
     hidden_dim_rnn = 100
     number_of_epochs = 20
-    lr = 0.25
+    lr = 10
     model=None
-    # with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=1&epoch=29&dist=0.31220051646232605', 'rb') as f:
-    #     model = torch.load(f)
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=0)
+    with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=5&epoch=66&dist=1.7441352605819702', 'rb') as f:
+        model = torch.load(f)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=66)
 

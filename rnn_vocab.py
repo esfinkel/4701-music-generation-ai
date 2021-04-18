@@ -109,6 +109,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
 
         loss = torch.Tensor([0])
         tot_loss = torch.Tensor([0])
+        num_correct = 0
         tot_distance = 0
         total = 0
         song_length = 0
@@ -121,7 +122,9 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                 song_length += 1
                 if hidden is None:
                     hidden = model.init_hidden()
-                predicted_next_line, hidden = model(line, hidden) 
+                predicted_next_line, hidden = model(line, hidden)
+                if np.argmax(predicted_next_line.detach().numpy()) == np.argmax(gold_next_line): 
+                    num_correct += 1
                 tot_distance += torch.linalg.norm(predicted_next_line - log_soft_gold(torch.from_numpy(gold_next_line)))
                 curr_loss = model.compute_Loss(predicted_next_line, torch.from_numpy(gold_next_line))
                 loss += curr_loss 
@@ -139,9 +142,11 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
         ### validation 
         print("Training completed for epoch {}".format(epoch + 1))
         print("Training avg distance for epoch {}: {}".format(epoch + 1, tot_distance / total))
+        print("Percent correct: {}".format(num_correct / total))
         print("Training time for this epoch: {}".format(time.time() - start_time))
 
         tot_distance = 0
+        num_correct = 0
         total = 0
         start_time = time.time()
         print("Validation started for epoch {}".format(epoch + 1))
@@ -154,6 +159,8 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
                     hidden = model.init_hidden()
                 pred_next_line, hidden = model(line, hidden)
                 total += 1
+                if np.argmax(pred_next_line.detach().numpy()) == np.argmax(gold_next_line):
+                    num_correct += 1
                 tot_distance += torch.linalg.norm(pred_next_line - log_soft_gold(torch.from_numpy(gold_next_line)))
 
         if min_valid_dist is None or tot_distance / total < min_valid_dist:
@@ -164,6 +171,7 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
 
         print("Validation completed for epoch {}".format(epoch + 1))
         print("Validation distance for epoch {}: {}".format(epoch + 1, tot_distance / total))
+        print("Percent correct: {}".format(num_correct / total))
         print("Validation time for this epoch: {}".format(time.time() - start_time))
 
         ##STOPPING CONDITION 
@@ -181,9 +189,9 @@ def main(hidden_dim, num_epochs, learning_rate, existing_model=None, epoch_start
 if __name__ == "__main__":
     hidden_dim_rnn = 100
     number_of_epochs = 20
-    lr = 0.25
+    lr = 0.75
     model=None
-    # with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=1&epoch=29&dist=0.31220051646232605', 'rb') as f:
-    #     model = torch.load(f)
-    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=0)
+    with open('rnn_models/vocab_vecs&hidden_dim=100&learning_rate=0.25&epoch=3&dist=45.625892639160156', 'rb') as f:
+        model = torch.load(f)
+    main(hidden_dim=hidden_dim_rnn, num_epochs=number_of_epochs, learning_rate=lr, existing_model=model, epoch_start=3)
 
