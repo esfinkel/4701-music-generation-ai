@@ -90,12 +90,12 @@ def convert_hand_vec_to_kern(hand_vec, hand):
     # num_notes = 1
     if num_notes == 0:
         return "."
-    duration_ind = random.choices(range(9), to_good_prob_dist(hand_vec[39:48]))[0]
+    duration_ind = random.choices(np.argsort(-to_good_prob_dist(hand_vec[39:48]))[:3], -np.sort(-to_good_prob_dist(hand_vec[39:48]))[:3])[0]
     duration = music_helpers.convert_duration_to_notation(common_rhythms[duration_ind])
     # duration = "4"
     notes = []
     for i in range(num_notes):
-        note_ind = random.choices(range(13), to_good_prob_dist(hand_vec[i*13:i*13+13]))[0]
+        note_ind = random.choices(np.argsort(-to_good_prob_dist(hand_vec[i*13:i*13+13]))[:3], -np.sort(-to_good_prob_dist(hand_vec[i*13:i*13+13]))[:3])[0]
         note = ind_to_note_map[note_ind]
         if hand=='L' and note != 'r':
             notes.append(duration+note.upper())

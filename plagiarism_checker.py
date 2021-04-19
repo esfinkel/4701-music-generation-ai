@@ -130,7 +130,7 @@ def check_generated(filepath):
         generated = f.readlines()
     generated = normalize_song(generated)
     print('\nk is the length of a "passage"\n')
-    for k in [1, 2, 3, 5, 10]:
+    for k in [10, 15, 20, 25, 30, 40]:
         check_generated_k(generated, song_texts, k)
 
 

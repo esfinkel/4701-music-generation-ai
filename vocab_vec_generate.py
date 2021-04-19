@@ -71,7 +71,7 @@ def generate(model, max_lines=150):
 
 if __name__ == "__main__":
     model = None
-    with open('rnn_models/vocab_vecs&hidden_dim=100&learning_rate=0.25&epoch=4&dist=45.621517181396484', "rb") as f:
+    with open('rnn_models/vocab_vecs&hidden_dim=100&learning_rate=0.75&epoch=23&dist=45.339237213134766', "rb") as f:
         model = torch.load(f)
     generate(model)
     # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 8 in C minor") as f:

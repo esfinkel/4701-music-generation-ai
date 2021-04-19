@@ -25,21 +25,6 @@ def write_music(formatted):
     with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
         file.write(formatted)
 
-def generate_from_piece(model, file_lines):
-    file_vecs = kern2vec.vec_list_for_song(file_lines)
-    hidden = model.init_hidden()
-    song_string = ""
-    for vec in file_vecs:
-        line, hidden = model(vec, hidden)
-        line_str = kern2vec.convert_line_vec_to_kern(line.detach().numpy())
-        # line_str = kern2vec.convert_line_vec_to_kern(vec)
-        if line_str is not None:
-            song_string += line_str + "\n"
-    print("Converting music to good **kern....")
-    new_music_formatted = fix_kern.convert_to_good_kern(song_string)
-    print("Writing music.....")
-    write_music(new_music_formatted)
-
 def generate(model, max_lines=150):
     """
     Generate and write random **kern song of length "max_lines",
@@ -71,7 +56,7 @@ def generate(model, max_lines=150):
 
 if __name__ == "__main__":
     model = None
-    with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=1&epoch=29&dist=0.31220051646232605', "rb") as f:
+    with open('rnn_models/log_prob_vecs&hidden_dim=100&learning_rate=10&epoch=86&dist=1.7209073305130005', "rb") as f:
         model = torch.load(f)
     generate(model)
     # with open("./music_in_C/Beethoven, Ludwig van___Piano Sonata no. 8 in C minor") as f:
