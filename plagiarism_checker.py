@@ -111,9 +111,10 @@ def check_generated_k(generated, song_texts, k):
     print(f"k={k}:")
     # Sum of "number of passages in `generated` that were found in t_song" for each training song t_song:
     # sum(file_matches.values())
-    print(
-        f"Potential plagiarism from {files} files. {sum(was_pla_accum > 0.1)} passages were found in training data, for a total of {sum(file_counts.values())} times."
-    )
+    if files > 0:
+        print(
+            f"Potential plagiarism from {files} files. {sum(was_pla_accum > 0.1)} passages were found in training data, for a total of {sum(file_counts.values())} times."
+        )
     if k==1:
         for i in range(num_passages):
             if was_pla_accum[i]==0:

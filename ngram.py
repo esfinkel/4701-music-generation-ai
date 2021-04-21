@@ -31,7 +31,7 @@ class LMModel():
         bi_prob = self.l2 * ((self.get_count(self.bi,line2+line3) + self.k) / 
                         (self.get_count(self.un, line2) + len(self.vocab)*self.k))
         un_prob = self.l1 * ((self.get_count(self.un,line3)+self.k) / 
-                        (self.num_tokens * (1 + self.k)))
+                        (self.num_tokens + len(self.vocab)*self.k))
         return tri_prob + bi_prob + un_prob
 
 def prob_dist(line1, line2, model):
@@ -149,18 +149,18 @@ def generate_random(model):
     """generates and returns new music"""
     return generate_music("", model)
 
-def tests():
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
-    print(perplexity("./music_in_C/Beethoven, Ludwig van___Piano Sonata No. 19 in G minor", lm))
+# def tests():
+#     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
+#     lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
+#     print(perplexity("./music_in_C/Beethoven, Ludwig van___Piano Sonata No. 19 in G minor", lm))
 
-    probs = prob_dist("16g	.\n", "16e	.\n", lm)
-    probs = [(line, prob) for line, prob in probs.items()]
-    probs.sort(key=lambda x: x[1], reverse=True)
-    ## top five most probable lines to follow 16g  .\n16e  .\n
-    for line, prob in probs[:5]:
-        print(line)
-        print(prob)
+#     probs = prob_dist("16g	.\n", "16e	.\n", lm)
+#     probs = [(line, prob) for line, prob in probs.items()]
+#     probs.sort(key=lambda x: x[1], reverse=True)
+#     ## top five most probable lines to follow 16g  .\n16e  .\n
+#     for line, prob in probs[:5]:
+#         print(line)
+#         print(prob)
 
 def write_music(formatted):
     """Given well-formatted kern music, write file"""
@@ -171,27 +171,37 @@ def write_music(formatted):
         file.write(formatted)
 
 
-def perplexity_expt(dir, un, bi, tri):
-    results = []
-    for l1 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-        for l2 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
-            l3 = 1 - l1 - l2
-            if l3 < 0 or l3 > 1:
-                continue
-            lm = LMModel(counts_un, counts_bi, counts_tri, l1, l2, l3, k=0.1)
-            results.append((avg_perplexity(dir, lm), l1, l2, l3))
-    return sorted(results, reverse=False)
+# def perplexity_expt(dir, un, bi, tri):
+#     results = []
+#     for l1 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+#         for l2 in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+#             l3 = 1 - l1 - l2
+#             if l3 < 0 or l3 > 1:
+#                 continue
+#             lm = LMModel(counts_un, counts_bi, counts_tri, l1, l2, l3, k=0.1)
+#             results.append((avg_perplexity(dir, lm), l1, l2, l3))
+#     return sorted(results, reverse=False)
 
 
 
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.2, l2=0.2, l3=0.6, k=0.01)
+    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.2, 0.3, 0.5, k=0.001)
+    while True:
+        print("l1: ",end="")
+        l1 = float(input())
+        print("l2: ",end="")
+        l2 = float(input())
+        print("l3: ",end="")
+        l3 = float(input())
+        print("k: ",end="")
+        k = float(input())
+        lm = LMModel(counts_un, counts_bi, counts_tri, l1=l1, l2=l2, l3=l3, k=k)
+        print(avg_perplexity("music_in_C_test", lm))
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
-    new_music = generate_random(lm)
-    # format and write
-    new_music_formatted = fix_kern.convert_to_good_kern(new_music)
-    write_music(new_music_formatted)
+    # new_music = generate_random(lm)
+    # # format and write
+    # new_music_formatted = fix_kern.convert_to_good_kern(new_music)
+    # write_music(new_music_formatted)
     # view online at http://verovio.humdrum.org/
