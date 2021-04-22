@@ -1,0 +1,176 @@
+**kern	**kern
+*staff2	*staff1
+*Ipiano	*Ipiano
+*clefF4	*clefG2
+4C# 4D	8a 8b
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+=	=
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8d# 8e
+4B	8d# 8e
+.	8r
+=	=
+*-	*-
