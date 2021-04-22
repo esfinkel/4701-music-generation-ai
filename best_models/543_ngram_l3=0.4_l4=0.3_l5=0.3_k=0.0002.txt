@@ -1,0 +1,269 @@
+**kern	**kern
+*staff2	*staff1
+*Ipiano	*Ipiano
+*clefF4	*clefG2
+1FF	8rA
+.	8r
+.	8r
+.	8r
+.	8r
+.	8r
+.	8r
+.	8r
+=	=
+8.F	8.r
+16r	16A
+16r	16c
+2.F	16f
+.	16a
+.	16cc
+.	16a#
+.	16dd
+.	16cc
+.	16dd
+.	16a#
+.	16dd
+.	16ggg#
+.	16gg#
+=	=
+.	16a#
+16r	16dd
+16r	16ddd
+16r	16dd
+16r	16b
+16r	16dd
+16r	16g
+16r	16ee
+4FF	8ff
+.	16ff
+.	16ee
+16r	16dd
+4FF	16cc#
+.	16dd
+.	16ee
+=	=
+.	16dd
+16r	16ee
+4a	16b
+.	16ee
+.	16b
+.	16ee
+4r	16cc
+.	16ee
+.	16gg
+.	16cc
+16r	16aa
+16r	16aa
+4r	16aa
+.	16ff
+.	16ccc
+.	16ccc
+=	=
+16r	16ccc
+4r	16ccc
+.	16aa
+.	16aa#
+.	16gg
+16r	16aa
+16r	16ff
+8cc	16ee
+.	16cc
+8b	8dd 2gg
+8g	16b
+.	16g
+8e	8cc
+8c	16ee
+=	=
+.	16cc
+4.G	8gg 4dd
+.	16aa
+.	16ff
+.	8gg 
+8cc	16ee
+.	16cc
+8b	8dd 2gg
+8g	16b
+.	16g
+8e	8cc
+8c	16ee
+=	=
+.	16cc
+8c#	16e
+.	16g
+4d#	16f#
+.	16a
+.	16g
+.	16f#
+4r	16e
+.	16d#
+.	16c#
+.	16B
+4dd	12eee
+.	6r
+8c#	8r
+=	=
+8cc	8gg
+[8d 8G	16b 8g
+.	16dd 
+[16d]	16r
+4b	12ccc#
+.	6r
+[16D	16r
+8B 8BB	8dd# 8b
+8c	16.aa
+.	32ccc 
+[12D	12r
+4cc	16dd#
+=	=
+.	16r
+.	16r
+.	16r
+8GG	8r
+8d	8r
+8g	8ccc#
+8B 8BB	8dd# 8b
+[4g 4cc	4aa
+4g]	4ddd
+=	=
+4f#	8a
+.	8r
+[16G	16r
+8f	8ff
+4aa	8.ddd#
+.	16r
+8.F	8.r
+4dd	12eee
+.	6ee 4gg#
+=	=
+8e	8cc
+4g	12aa#
+.	6r
+[12BB	12r
+4g	8aa#
+.	8eee 
+4ee	32aa# 32ggg
+.	8ee
+.	[32f
+.	[32f]
+.	32f]
+8dd	8ff 8aa
+=	=
+4g	4fff
+4e	4dd
+4d	8a
+.	8ccc 
+[4g	4ddd
+=	=
+[8g]	8ccc#
+4g] 4cc	4aa
+4c 4C	16a 4a
+.	8f#
+.	32r
+.	32dd 
+4cc	4gg 4aa#
+4d#	12aa
+.	6r
+=	=
+4f# 4A 4d	4r
+4b	12ccc#
+.	16.aa
+.	96r
+.	96r
+.	96r
+.	96r
+.	96r
+.	96r
+.	96r
+8c#	8r
+[4g 4d	4ee
+4g] 4c#	4dd
+=	=
+8A	8.cc
+16c 	.
+[16AA	16r
+8A 8a	8aa
+4cc	4ee
+8a 8dd	16fff
+.	16aa 
+4cc	4ff 4aa
+=	=
+[8c	16gg
+.	16a 4a
+8c]	16gg
+.	16r
+[4g 4c#	4r
+4g]	4fff
+8E	8r
+8G	8r
+=	=
+[16c	16r
+8dd	8ff 8aa
+4cc	4gg 4aa#
+4c	32r
+.	8aa
+.	32r
+.	32r
+.	32r
+8G	8r
+8cc	8gg
+4f	[32aa 32ggg
+.	[32aa] 4ccc
+=	=
+.	[32aa]
+.	[32aa]
+.	[32aa]
+.	[32aa]
+.	[32aa]
+.	32aa]
+8A	8ff
+4g	32aa# 32ggg
+.	32r
+.	32r
+.	32r
+.	32r
+.	32r
+.	32r
+.	32r
+[12F	12r
+[4AA#	2r
+=	=
+[8c	.
+8g 8c] 8e	.
+8A 8a	[8aa
+8dd	8ff 8aa]
+8c	16gg
+.	16r
+8c#	8r
+4d	4aa
+4dd	8ff#
+.	8r 
+=	=
+8d	8f#
+8dd	8ff#
+[12BB	12r
+4f	8aa
+.	8ddd 
+8g	8ccc#
+4ff 4dd	8r
+.	8aa
+4cc	4ee
+=	=
+4ee	32aa# 32ggg
+.	8cc
+.	[32aa
+.	[32aa]
+.	[32aa]
+4cc	4ff [4aa]
+4ff	4aa] 4ccc#
+8c	16gg
+.	16r
+[16AA	16r
+8f#	8r
+=	=
+[4g	4fff
+4g] 4d	4ee
+4ff	4aa 4ccc#
+4d	12ff
+.	6r
+=	=
+*-	*-
