@@ -124,6 +124,27 @@ def check_generated_k(generated, song_texts, k):
     print(f"Passages potentially plagiarized: {round(filtered_array_val*100/num_passages, 1)}%\n")
 
 
+def biggest_chunk(filepath):
+    song_texts = get_song_texts()
+    with open(filepath) as f:
+        generated = f.readlines()
+    generated = normalize_song(generated)
+    biggest = 0
+    identity = ""
+    for song in song_texts:
+        maxed = False
+        k = 1
+        while not maxed:
+            times, _, _ = matching_phrases(generated, song_texts[song], k=k)
+            if times == 0:
+                maxed = True
+            k += 1
+            if k > biggest:
+                biggest = k
+                identity = song
+    print(f"biggest plagiarized passage had length {biggest}; from piece {identity}")
+
+
 
 def check_generated(filepath):
     song_texts = get_song_texts()
@@ -131,7 +152,7 @@ def check_generated(filepath):
         generated = f.readlines()
     generated = normalize_song(generated)
     print('\nk is the length of a "passage"\n')
-    for k in [10, 15, 20, 25, 30, 40]:
+    for k in [5, 10, 15, 20, 25, 30, 40, 60]:
         check_generated_k(generated, song_texts, k)
 
 
@@ -139,6 +160,10 @@ if __name__ == '__main__':
     if len(sys.argv)<2:
         print('please specify generated file to evaluate')
     else:
-        check_generated(sys.argv[1])
+        path = sys.argv[1]
+        if 'biggest' in sys.argv:
+            biggest_chunk(path)
+        else:
+            check_generated(path)
         # with open('./generated_music_RNN/1618031260.txt') as f:
         #     print(normalize_song(f.readlines()))
