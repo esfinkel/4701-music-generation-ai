@@ -55,7 +55,7 @@ def get_song_texts():
     return songs
 
 
-def matching_phrases(generated, original, k, print_phrases=False):
+def matching_phrases(generated, original, k, print_phrases=False, no_overlap=False):
     """Given normalized songs `generated` and `original`, find how many
     length-k passages in `generated` were also present in `original`.
 
@@ -69,25 +69,31 @@ def matching_phrases(generated, original, k, print_phrases=False):
     """
     matches = 0
     count = 0
+    skip = 0
     was_pla = np.zeros(len(generated)-k+1)
     # print()
     original_text = "\n".join(original)
     for i in range(len(generated)-k):
+        if skip>0:
+            skip -= 1
+            continue
         passage = generated[i:i+k]
         if passage == ["."]*k:
             continue
         # print(len(passage))
         passage_text = "\n".join(passage)
-        if passage_text in original_text:
-            matches += 1
-            was_pla[i] = 1
         if print_phrases and (passage_text in original_text):
             print(i, repr(passage_text))
         count += original_text.count(passage_text)
+        if passage_text in original_text:
+            matches += 1
+            was_pla[i] = 1
+            if no_overlap:
+                skip = k-1
     return matches, count, was_pla
 
 
-def check_generated_k(generated, song_texts, k):
+def check_generated_k(generated, song_texts, k, no_overlap=False):
     """Given song `generated` and list of training songs `song_texts`
     (all normalized as per `normalize_song`), print out the degree of 
     plagiarism detected, using passages of length `k`.
@@ -104,7 +110,7 @@ def check_generated_k(generated, song_texts, k):
     file_counts = collections.defaultdict(int)
     for song in song_texts:
         file_matches[song], file_counts[song], was_pla = \
-                matching_phrases(generated, song_texts[song], k=k)
+                matching_phrases(generated, song_texts[song], k=k, no_overlap=no_overlap)
         if file_matches[song] > 0:
             files += 1
         was_pla_accum += was_pla
@@ -146,14 +152,14 @@ def biggest_chunk(filepath):
 
 
 
-def check_generated(filepath):
+def check_generated(filepath, no_overlap = False):
     song_texts = get_song_texts()
     with open(filepath) as f:
         generated = f.readlines()
     generated = normalize_song(generated)
     print('\nk is the length of a "passage"\n')
     for k in [5, 10, 15, 20, 25, 30, 40, 60]:
-        check_generated_k(generated, song_texts, k)
+        check_generated_k(generated, song_texts, k, no_overlap = no_overlap)
 
 
 if __name__ == '__main__':
@@ -164,6 +170,6 @@ if __name__ == '__main__':
         if 'biggest' in sys.argv:
             biggest_chunk(path)
         else:
-            check_generated(path)
+            check_generated(path, ('nooverlap' in sys.argv))
         # with open('./generated_music_RNN/1618031260.txt') as f:
         #     print(normalize_song(f.readlines()))
