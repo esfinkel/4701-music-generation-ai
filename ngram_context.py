@@ -115,7 +115,6 @@ def perplexity(filepath, model):
     perplexity = math.exp((-1.0/count) * log_prob)
     return perplexity
 
-
 def avg_perplexity(dir_path, model):
     """returns the avg perplexity over all the pieces (not normalized)"""
     ps = []
@@ -141,7 +140,7 @@ def generate_music(start, model, has_max=True, max_notes=200):
     music = ["<s>", "<s>", "<s>", "<s>"]
     if start is not None and start != "":
         music.extend(start.split("\n"))
-    while music[-1] != "</s>":
+    while True:#music[-1] != "</s>":
         prob_dictionary = prob_dist(music[-4]+"\n", music[-3]+"\n", music[-2]+"\n", music[-1]+"\n", model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
@@ -149,10 +148,11 @@ def generate_music(start, model, has_max=True, max_notes=200):
             toks.append(tok)
             probs.append(prob)
             # probs.append(2**prob)
-        next = random.choices(toks[:5000], weights=probs[:5000])[0]
+        next = random.choices(toks[:100], weights=probs[:100])[0]
         # next = random.choices(toks, weights=probs)[0]
         # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
-        music.append(next.strip())
+        if next.strip() != "</s>":
+            music.append(next.strip())
         print(next.strip())
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
@@ -168,18 +168,18 @@ def generate_random(model):
     """generates and returns new music"""
     return generate_music("", model)
 
-def tests():
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
-    print(perplexity("./music_in_C/Beethoven, Ludwig van___Piano Sonata No. 19 in G minor", lm))
+# def tests():
+#     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
+#     lm = LMModel(counts_un, counts_bi, counts_tri, 0.7, 0.2, 0.1, 1)
+#     print(perplexity("./music_in_C/Beethoven, Ludwig van___Piano Sonata No. 19 in G minor", lm))
 
-    probs = prob_dist("16g	.\n", "16e	.\n", lm)
-    probs = [(line, prob) for line, prob in probs.items()]
-    probs.sort(key=lambda x: x[1], reverse=True)
-    ## top five most probable lines to follow 16g  .\n16e  .\n
-    for line, prob in probs[:5]:
-        print(line)
-        print(prob)
+#     probs = prob_dist("16g	.\n", "16e	.\n", lm)
+#     probs = [(line, prob) for line, prob in probs.items()]
+#     probs.sort(key=lambda x: x[1], reverse=True)
+#     ## top five most probable lines to follow 16g  .\n16e  .\n
+#     for line, prob in probs[:5]:
+#         print(line)
+#         print(prob)
 
 def write_music(formatted):
     """Given well-formatted kern music, write file"""
@@ -192,9 +192,20 @@ def write_music(formatted):
 
 
 if __name__ == "__main__":
-    vocab, counts_bi, counts_tri, counts_4, counts_5 = gather_counts("Mozart")
+    vocab, counts_bi, counts_tri, counts_4, counts_5 = gather_counts("music_in_C_training")
     # lm = LMModel(counts_un, counts_bi, counts_tri, 0.1, 0.2, 0.7, k=0.01)
-    lm = LMModel(vocab, counts_bi, counts_tri, counts_4, counts_5, 0.1, 0.2, 0.7, 0.01)
+    lm = LMModel(vocab, counts_bi, counts_tri, counts_4, counts_5, l3=0.4, l4=0.3, l5=0.3, k=0.0002)
+    # while True:
+    #     print("l3: ",end="")
+    #     l3 = float(input())
+    #     print("l4: ",end="")
+    #     l4 = float(input())
+    #     print("l5: ",end="")
+    #     l5 = float(input())
+    #     print("k: ",end="")
+    #     k = float(input())
+    #     lm = LMModel(vocab, counts_bi, counts_tri, counts_4, counts_5, l3, l4, l5, k)
+    #     print(avg_perplexity("music_in_C_test", lm))
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
     new_music = generate_random(lm)

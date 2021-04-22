@@ -27,16 +27,19 @@ def write_music(formatted):
 
 def generate(model, max_lines=150, updated_hidden_format=False):
     print("generating music.....")
-    curr_line = torch.from_numpy(kern2vec.ones()).float() 
+    curr_line = torch.from_numpy(kern2vec.zeros()).float() 
+    curr_line = curr_line.detach().numpy()
     if updated_hidden_format:
         hidden = model.init_hidden()
     generated = []
     while len(generated) <= max_lines:
         if updated_hidden_format:
-            curr_line, hidden = model(curr_line.detach().numpy(), hidden)
+            curr_line, hidden = model(curr_line, hidden)
         else:
-            curr_line = model(curr_line.detach().numpy())
-        generated.append(curr_line.detach().numpy())
+            curr_line = model(curr_line)
+        curr_kern = kern2vec.convert_line_vec_to_kern(curr_line.detach().numpy())
+        curr_line = kern2vec.convert_kern_line_to_vec(curr_kern)
+        generated.append(curr_line)
     print("Converting music to **kern....")
     song_string = kern2vec.song_from_vec_list(generated)
     new_music_formatted = fix_kern.convert_to_good_kern(song_string)

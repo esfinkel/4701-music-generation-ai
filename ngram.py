@@ -123,18 +123,19 @@ def generate_music(start, model, has_max=True, max_notes=200):
     music = ["<s>\n", "<s>\n"]
     if start is not None and start != "":
         music.extend(start.split("\n"))
-    while music[-1] != "</s>\n":
+    while True:#music[-1] != "</s>\n":
         prob_dictionary = prob_dist(music[-2], music[-1], model)
         sorted_dict = sorted([(prob, tok) for tok, prob in prob_dictionary.items()], reverse=True)
         toks, probs = [], []
         for prob, tok in sorted_dict:
             toks.append(tok)
-            # probs.append(prob)
-            probs.append(2**prob)
-        next = random.choices(toks[:5000], weights=probs[:5000])[0]
+            probs.append(prob)
+            # probs.append(2**prob)
+        next = random.choices(toks[:100], weights=probs[:100])[0]
         # next = random.choices(toks, weights=probs)[0]
         # print(next.strip(), 'prob was', prob_dictionary[next], 'max probs were', sorted(probs, reverse=True)[:3], 'num options', len(probs))
-        music.append(next.strip()+"\n")
+        if next.strip() != "</s>":
+            music.append(next.strip()+"\n")
         if has_max and len(music) > max_notes:
             print(f"terminated after {max_notes} notes")
             break
@@ -182,26 +183,27 @@ def write_music(formatted):
 #             results.append((avg_perplexity(dir, lm), l1, l2, l3))
 #     return sorted(results, reverse=False)
 
-
-
 if __name__ == "__main__":
     counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
-    # lm = LMModel(counts_un, counts_bi, counts_tri, 0.2, 0.3, 0.5, k=0.001)
-    while True:
-        print("l1: ",end="")
-        l1 = float(input())
-        print("l2: ",end="")
-        l2 = float(input())
-        print("l3: ",end="")
-        l3 = float(input())
-        print("k: ",end="")
-        k = float(input())
-        lm = LMModel(counts_un, counts_bi, counts_tri, l1=l1, l2=l2, l3=l3, k=k)
-        print(avg_perplexity("music_in_C_test", lm))
+    lm = LMModel(counts_un, counts_bi, counts_tri, 0, 0, 1, k=0.002)
+    # while True:
+    #     # print("l1: ",end="")
+    #     # l1 = float(input())
+    #     l1 = 0.0
+    #     # print("l2: ",end="")
+    #     # l2 = float(input())
+    #     l2 = 0.0
+    #     # print("l3: ",end="")
+    #     # l3 = float(input())
+    #     l3 = 1.0
+    #     print("k: ",end="")
+    #     k = float(input())
+    #     lm = LMModel(counts_un, counts_bi, counts_tri, l1=l1, l2=l2, l3=l3, k=k)
+    #     print(avg_perplexity("music_in_C_test", lm))
     # print(perplexity_expt("music_in_C_test", counts_un, counts_bi, counts_tri))
     # generate music
-    # new_music = generate_random(lm)
-    # # format and write
-    # new_music_formatted = fix_kern.convert_to_good_kern(new_music)
-    # write_music(new_music_formatted)
+    new_music = generate_random(lm)
+    # format and write
+    new_music_formatted = fix_kern.convert_to_good_kern(new_music)
+    write_music(new_music_formatted)
     # view online at http://verovio.humdrum.org/

@@ -78,7 +78,7 @@ def to_good_prob_dist(vec):
 def convert_line_vec_to_kern(line_vec):
     """The inverse of convert_kern_line_to_vec(), possibly with ordering
     changes of the notes. """
-    ind = random.choices(range(len(line_vec)), to_good_prob_dist(line_vec))[0]
+    ind = random.choices(np.argsort(-to_good_prob_dist(line_vec))[:50], -np.sort(-to_good_prob_dist(line_vec))[:50])[0]
     return ind_to_vocab[ind]
 
 def convert_kern_line_to_vec(line):

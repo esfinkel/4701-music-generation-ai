@@ -32,7 +32,7 @@ class LMModel():
         bi_prob = self.l2 * ((self.get_count(self.bi,line2+line3) + self.k) / 
                         (self.get_count(self.un, line2) + len(self.vocab)*self.k))
         un_prob = self.l1 * ((self.get_count(self.un,line3)+self.k) / 
-                        (self.num_tokens * (1 + self.k)))
+                        (self.num_tokens + len(self.vocab)*self.k))
         return tri_prob + bi_prob + un_prob
 
 def prob_dist(line1, line2, model):
@@ -70,8 +70,7 @@ def get_next_beat(lines, i):
 
 def gather_counts(directory):
     """Finds unigram, bigram, and trigram counts for all **kern files in 
-    `directory`. prepends two <s> lines to the beginning of every file
-    and appends two </s> lines to every file. """
+    `directory`. prepends two <s> lines to the beginning of every file """
     counts_un = defaultdict(int)
     counts_bi = defaultdict(int)
     counts_tri = defaultdict(int)
@@ -108,7 +107,7 @@ def generate_music(model, has_max=True, max_beats=100):
         for prob, tok in sorted_dict:
             toks.append(tok)
             probs.append(prob)
-        next = random.choices(toks[:100], weights=probs[:100])[0]
+        next = random.choices(toks[:1000], weights=probs[:1000])[0]
         # next = random.choices(toks, weights=probs)[0]
         music.append(next.strip()+"\n")
         print(next)
@@ -130,11 +129,68 @@ def write_music(formatted):
     with open(f"./{dir}/{round(time.time())}.txt", "w") as file:
         file.write(formatted)
 
+def log_prob_of_file(filepath, model):
+    """Outputs the log probability of the music in file. Also outputs the 
+    number of tokens in the file. """
+    # vocab = set(counts_un.keys())
+    tot = 0
+    count = 2
+    prev_prev = "<s>\n"
+    prev = "<s>\n"
+    with open(filepath) as f:
+        filetext = f.readlines()
+    music = []
+    i=0
+    while i < len(filetext):
+        next_line, i = get_next_beat(filetext, i)
+        music.append(next_line)
+    for line in music:
+        count += 1
+        line = line.strip()+"\n"
+        tri_prob = model.get_trigram_prob(prev_prev, prev, line)
+        tot += math.log(tri_prob)
+        prev_prev = prev
+        prev = line 
+    return tot, count
+
+def perplexity(filepath, model):
+    """returns the perplexity of the file. """
+    log_prob, count = log_prob_of_file(filepath, model)
+    perplexity = math.exp((-1.0/count) * log_prob)
+    return perplexity
+
+def avg_perplexity(dir_path, model):
+    """returns the avg perplexity over all the pieces (not normalized)"""
+    ps = []
+    for filename in os.listdir(f"./{dir_path}"):
+        path = f"./{dir_path}/{filename}"
+        if ".DS" in path:
+            continue
+        with open(path) as f:
+            if f.read().strip() == "":
+                continue
+        # try:
+        ps.append(perplexity(path, model))
+        # except:
+        #     print("error w perplex of "+path)
+    
+    return sum(ps)/len(ps)
 
 if __name__ == "__main__":
-    counts_un, counts_bi, counts_tri = gather_counts("music_in_C")
+    counts_un, counts_bi, counts_tri = gather_counts("music_in_C_training")
 
-    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.1, l2=0.1, l3=0.8, k=0.001)
+    lm = LMModel(counts_un, counts_bi, counts_tri, l1=0.01, l2=0.29, l3=0.7, k=0.001)
+    # while True:
+    #     print("l1: ",end="")
+    #     l1 = float(input())
+    #     print("l2: ",end="")
+    #     l2 = float(input())
+    #     print("l3: ",end="")
+    #     l3 = float(input())
+    #     print("k: ",end="")
+    #     k = float(input())
+    #     lm = LMModel(counts_un, counts_bi, counts_tri, l1, l2, l3, k)
+    #     print(avg_perplexity("music_in_C_test", lm))
 
     new_music = generate_music(lm)
     new_music_formatted = fix_kern.convert_to_good_kern(new_music)
